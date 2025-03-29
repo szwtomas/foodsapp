@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import OpenAIClient from "./services/openAi/OpenAIClient";
-import OpenAIRequest from "./services/openAi/OpenAIRequest";
+import type OpenAIRequest from "./services/openAi/OpenAIRequest";
 import api from "./routes/api";
 import webhookRouter from "./routes/webhook";
 

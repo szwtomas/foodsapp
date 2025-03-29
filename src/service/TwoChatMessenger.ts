@@ -1,7 +1,5 @@
 import { deepgramService } from "./DeepgramService";
 import dotenv from 'dotenv';
-import https from 'https';
-import { URL } from 'url';
 import type {
   ApiKeyCheckResponse,
   CheckNumberResponse,
