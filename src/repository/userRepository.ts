@@ -49,7 +49,7 @@ export const UserSchema = z.object({
       "eatWholeFoods",
       "eatBalanced",
     ]).optional()
-  ),
+  ).optional(),
   sex: z.enum(["male", "female", "other"]).optional(),
   height: z.number().positive().optional(),
   weight: z.number().positive().optional(),
@@ -82,10 +82,10 @@ export class UserRepository {
   }
 
   // Create a new user
-  createUser(userData: Omit<User, "conversation">): User {
+  createUser(userData: User): User {
     try {
       // Validate the input data
-      const validatedData = UserSchema.omit({ conversation: true }).parse(
+      const validatedData = UserSchema.parse(
         userData
       );
 
@@ -110,6 +110,10 @@ export class UserRepository {
   // Get user by phone number
   getUser(phoneNumber: string): User | undefined {
     return this.users.get(phoneNumber);
+  }
+
+  createUserFromNumber(phoneNumber: string): User {
+    return this.createUser({ phoneNumber });
   }
 
   // Update user

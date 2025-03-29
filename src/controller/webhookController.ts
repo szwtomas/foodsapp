@@ -120,6 +120,9 @@ async function handleMessage(
   const user = userRepository.getUser(fromNumber);
 
   console.log("user is", user);
+  if (!user) {
+     userRepository.createUserFromNumber(fromNumber);
+  }
 
   let lastConversationMessages: Message[] = []
   if (user?.conversation?.length){
@@ -128,20 +131,22 @@ async function handleMessage(
   }
 
 
-  const { text: result } = await generateText({
+  const { text: result, steps: steps } = await generateText({
     model: openai("o3-mini", { structuredOutputs: true }),
     tools: {
       requestUserInformation: tool({
         description: "Solicita información al usuario para completar su perfil.",
         parameters: z.object({
-          user: UserSchema.describe("El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte.")
+          user: UserSchema.describe("El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."),
         }),
         execute: executeRequestUserInformationTool
       })
     },
+    prompt: lastConversationMessages.length ? lastConversationMessages[lastConversationMessages.length - 1]?.content : "",
     system: systemPrompt(user, lastConversationMessages),
 
   })
+  console.log("stepsTaken: ", steps.flatMap((step) => step.toolCalls));
 }
 
 const systemPrompt = (user?: User, last5MinutesConversation?:Message[]): string => `
