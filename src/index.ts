@@ -2,8 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import api from "./routes/api";
 import webhookRouter from "./routes/webhook";
-// import OpenAIClient from "./services/openAi/OpenAIClient";
-import OpenAIRequest from "./services/openAi/OpenAIRequest";
 
 dotenv.config();
 

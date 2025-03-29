@@ -2,10 +2,11 @@ import type { Request, Response } from "express";
 import { logger } from "../logger";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
-import { userRepository } from "../repository/userRepository";
-import { generateObject, generateText } from "ai";
+import { userRepository, UserSchema } from "../repository/userRepository";
+import { generateObject, generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
+import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
 
 // Define the tools schemas
 const requestUserInformationSchema = z.object({
@@ -120,6 +121,19 @@ async function handleMessage(
 
   console.log("user is", user);
 
+  const { text: result } = await generateText({
+    model: openai("o3-mini", { structuredOutputs: true }),
+    tools: {
+      requestUserInformation: tool({
+        description: "Solicita información al usuario para completar su perfil.",
+        parameters: z.object({
+          user: UserSchema.describe("El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte.")
+        }),
+        execute: executeRequestUserInformationTool
+      })
+    }
+  })
+
   const { object } = await generateObject({
     model: openai.responses("gpt-4o-mini"),
     schema: z.object({
@@ -210,22 +224,6 @@ const systemPrompt = `
   Acción: generateReport con reportType="weekly"
 `; 
 
-// Tool handler functions
-async function handleTools(tool: z.infer<typeof toolsSchema>, userPhoneNumber: string, fromNumber: string) {
-  switch (tool.type) {
-    case 'requestUserInformation':
-      return await requestUserInformation(tool, userPhoneNumber, fromNumber);
-    case 'generateReport':
-      return await generateReport(tool, userPhoneNumber, fromNumber);
-    case 'validateFoodLogEntry':
-      return await validateFoodLogEntry(tool, userPhoneNumber, fromNumber);
-    case 'registerFoodLogEntry':
-      return await registerFoodLogEntry(tool, userPhoneNumber, fromNumber);
-    default:
-      return 'Unsupported tool';
-  }
-}
-
 async function requestUserInformation(
   tool: z.infer<typeof requestUserInformationSchema>,
   userPhoneNumber: string,
@@ -236,7 +234,7 @@ async function requestUserInformation(
   
   // Generate a message asking for the missing information
   const missingFieldsText = tool.missingFields.join(', ');
-  const message = `Para completar tu registro, necesito la siguiente información: ${missingFieldsText}`;
+  const message = `Para completar tu registro, necesito la siguiente información: ${missingFieldsText}. Podrías por favor darmela uwu?`;
   
   // Send the message to the user
   await twoChatMessenger.sendMessage({
@@ -287,13 +285,13 @@ async function generateReport(
   let totalFats = 0;
   let totalCalories = 0;
   
-  foodLogs.forEach(log => {
+  for (const log of foodLogs) {
     totalProtein += log.totalMacros.protein;
     totalCarbs += log.totalMacros.carbs;
     totalFats += log.totalMacros.fats;
     // Estimate calories based on macros (4 cal/g protein, 4 cal/g carbs, 9 cal/g fat)
     totalCalories += (log.totalMacros.protein * 4) + (log.totalMacros.carbs * 4) + (log.totalMacros.fats * 9);
-  });
+  }
   
   const days = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
   const averageProtein = totalProtein / days;
@@ -361,7 +359,8 @@ async function validateFoodLogEntry(
   const foodAnalysis = await analyzeFood(tool.foodDescription);
   
   // Construct validation message
-  const validationMessage = `Detecté que consumiste: ${foodAnalysis.name}, ${foodAnalysis.portion}
+  // biome-ignore lint/style/useTemplate: <explanation>
+      const validationMessage = `Detecté que consumiste: ${foodAnalysis.name}, ${foodAnalysis.portion}
 ` +
     `Con aproximadamente:
 ` +
@@ -373,7 +372,7 @@ async function validateFoodLogEntry(
 ` +
     `- ${foodAnalysis.macros.fats}g de grasas
 ` +
-    `¿Es esto correcto?`;
+    "¿Es esto correcto?";
   
   // Send validation message to user
   await twoChatMessenger.sendMessage({

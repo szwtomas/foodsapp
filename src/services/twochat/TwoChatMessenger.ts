@@ -26,6 +26,7 @@ export class TwoChatMessenger {
   private baseUrl = "https://api.p.2chat.io/open";
   private logger;
 
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   constructor(apiKey: string, logger: any) {
     if (!apiKey) {
       throw new Error("API Key is required for TwoChatMessenger");

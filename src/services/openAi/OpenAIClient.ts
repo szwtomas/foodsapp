@@ -42,6 +42,7 @@ class OpenAIClient {
         }
     }
 
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     private async processContent(content: any[]): Promise<any[]> {
         return Promise.all(content.map(async (item) => {
             if (item.type === "input_audio" && item.audio_url) {

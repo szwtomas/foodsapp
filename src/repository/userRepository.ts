@@ -35,10 +35,10 @@ const MessageSchema = z.object({
   isUser: z.boolean(),
 });
 
-const UserSchema = z.object({
-  age: z.number().int().positive(),
+export const UserSchema = z.object({
+  age: z.number().int().positive().optional(),
   phoneNumber: z.string().min(5), // ID
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
   goal: z.array(
     z.enum([
       "loseWeight",
@@ -46,20 +46,20 @@ const UserSchema = z.object({
       "maintainWeight",
       "eatWholeFoods",
       "eatBalanced",
-    ])
+    ]).optional()
   ),
-  sex: z.enum(["male", "female", "other"]),
-  height: z.number().positive(),
-  weight: z.number().positive(),
+  sex: z.enum(["male", "female", "other"]).optional(),
+  height: z.number().positive().optional(),
+  weight: z.number().positive().optional(),
   physicalActivityLevel: z.enum([
     "sedentary",
     "light",
     "moderate",
     "active",
     "veryActive",
-  ]),
-  dietaryRestrictions: z.array(z.string()),
-  diseases: z.array(z.string()),
+  ]).optional(),
+  dietaryRestrictions: z.array(z.string()).optional(),
+  diseases: z.array(z.string()).optional(),
   conversation: z.array(MessageSchema).optional(),
   foodLogs: z.array(FoodLogSchema).optional(),
 });
@@ -70,7 +70,7 @@ type Micro = z.infer<typeof MicroSchema>;
 type Food = z.infer<typeof FoodSchema>;
 type FoodLog = z.infer<typeof FoodLogSchema>;
 type Message = z.infer<typeof MessageSchema>;
-type User = z.infer<typeof UserSchema>;
+export type User = z.infer<typeof UserSchema>;
 
 export class UserRepository {
   private users: Map<string, User>;
