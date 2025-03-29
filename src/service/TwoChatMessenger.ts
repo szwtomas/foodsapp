@@ -1,4 +1,7 @@
 import { deepgramService } from "./DeepgramService";
+import dotenv from 'dotenv';
+import https from 'https';
+import { URL } from 'url';
 import type {
   ApiKeyCheckResponse,
   CheckNumberResponse,
@@ -15,6 +18,9 @@ import type {
   WebhookPayload,
 } from "./types/TwoChatTypes";
 import { logger } from "../logger";
+
+// Ensure environment variables are loaded
+dotenv.config();
 
 export class TwoChatMessenger {
   private apiKey: string;

@@ -1,6 +1,6 @@
 import express from "express";
-import { twoChatController } from "../controller/twoChatController";
 import { use } from "../helper/utility";
+import { twoChatController } from "../controller/twoChatController";
 
 const api = express.Router();
 

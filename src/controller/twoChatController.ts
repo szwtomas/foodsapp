@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { twoChatMessenger } from "../service/TwoChatMessenger";
-import type { SendMessagePayload } from "../service/types/TwoChatTypes";
+import { SendMessagePayload } from "../service/types/TwoChatTypes";
 
 export const twoChatController = {
   async checkApiKey(req: Request, res: Response): Promise<void> {
