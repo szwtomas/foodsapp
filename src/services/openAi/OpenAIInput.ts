@@ -1,6 +1,6 @@
 
 
-type OpenAIContent = OpenAIText | OpenAIImage;
+type OpenAIContent = OpenAIText | OpenAIImage | OpenAIAudio;
 
 interface OpenAIText {
     type: "input_text";
@@ -12,6 +12,12 @@ interface OpenAIImage {
     image_url: string;
     detail: string;
 }
+
+interface OpenAIAudio {
+    type: "input_audio";
+    audio_url: string;
+}
+
 
 interface OpenAIInput {
     role: "user" | "system";
