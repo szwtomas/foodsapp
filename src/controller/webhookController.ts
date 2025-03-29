@@ -117,11 +117,11 @@ async function handleMessage(
   payload: StandardizedWebhookPayload,
   fromNumber: string
 ) {
-  const user = userRepository.getUser(fromNumber);
+  let  user = userRepository.getUser(fromNumber);
 
   console.log("user is", user);
   if (!user) {
-     userRepository.createUserFromNumber(fromNumber);
+     user = userRepository.createUserFromNumber(fromNumber);
   }
 
   let lastConversationMessages: Message[] = []
