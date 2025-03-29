@@ -1,0 +1,15 @@
+services:
+  app-dev:
+    container_name: foodsapp-dev
+    env_file: ./.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Debug port for Node.js
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
