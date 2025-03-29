@@ -8,10 +8,13 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "openai": "^4.90.0"
+  },
   "devDependencies": {
     "@types/node": "^20.11.24",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
-} 
+}
