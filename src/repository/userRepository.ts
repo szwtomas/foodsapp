@@ -374,14 +374,13 @@ export class UserRepository {
   private calculateTotalMicros(foods: Food[]): Micro[] {
     // Create a map to aggregate micros by name
     const microMap = new Map<string, number>();
-
     // Aggregate all micros from all foods
-    foods.forEach((food) => {
-      food.micros.forEach((micro: Micro) => {
+    for (const food of foods) {
+      for (const micro of food.micros) {
         const currentAmount = microMap.get(micro.name) || 0;
         microMap.set(micro.name, currentAmount + micro.amount);
-      });
-    });
+      }
+    }
 
     // Convert map back to array of Micro objects
     return Array.from(microMap.entries()).map(([name, amount]) => ({

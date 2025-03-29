@@ -16,6 +16,7 @@ import type {
   WebhookPayload,
 } from "../types/TwoChatTypes";
 import { logger } from "../../logger";
+import { openAiClient } from "../openAi/OpenAIClient";
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -191,8 +192,9 @@ export class TwoChatMessenger {
         payload.message.media.type === "audio"
       ) {
         try {
-          standardizedPayload.content.text =
-            await deepgramService.transcribeAudio(payload.message.media.url);
+          standardizedPayload.content.text = await openAiClient.transcriptAudio(payload.message.media.url);
+          //standardizedPayload.content.text =
+          //  await deepgramService.transcribeAudio(payload.message.media.url);
           this.logger.info(
             { text: standardizedPayload.content.text },
             "TRANSCRIBED AUDIO",
