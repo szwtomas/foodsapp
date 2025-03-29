@@ -10,7 +10,7 @@ User
 - restriccion alimentaria
 - enfermedades
 - conversation: messages[]
--
+- foodslog: foodlog[]
 
 
 mensaje {
@@ -19,7 +19,7 @@ mensaje {
 }
 
 foodlog {
-    description:string
+    description: string
     totalmacros: Macros
     totalmicros: micros[]
     foods: food[]
