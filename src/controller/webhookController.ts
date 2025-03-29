@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { logger } from "../logger";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
-import { type Message, User, userRepository, UserSchema } from "../repository/userRepository";
+import { type Message, type User, userRepository, UserSchema } from "../repository/userRepository";
 import { generateObject, generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
