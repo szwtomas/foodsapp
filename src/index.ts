@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import OpenAIClient from "./services/openAi/openAIClient";
+import OpenAIClient from "./services/openAi/OpenAIClient";
 import OpenAIRequest from "./services/openAi/OpenAIRequest";
 
 dotenv.config();
