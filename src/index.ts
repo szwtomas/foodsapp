@@ -1,10 +1,27 @@
+import express from "express";
 import dotenv from "dotenv";
 import OpenAIClient from "./services/openAi/OpenAIClient";
 import OpenAIRequest from "./services/openAi/OpenAIRequest";
+import api from "./routes/api";
 
 dotenv.config();
 
-console.log("Hello, World!"); 
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+
+// Routes
+app.use(api);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 (async () => {
     const apiKey = process.env.OPENAI_API_KEY || "your-api-key-here";
