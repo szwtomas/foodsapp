@@ -1,4 +1,4 @@
-import { deepgramService } from "./DeepgramService";
+import { deepgramService } from "../DeepgramService";
 import dotenv from 'dotenv';
 import type {
   ApiKeyCheckResponse,
@@ -14,8 +14,8 @@ import type {
   StandardizedWebhookPayload,
   SubscribeWebhookResponse,
   WebhookPayload,
-} from "./types/TwoChatTypes";
-import { logger } from "../logger";
+} from "../types/TwoChatTypes";
+import { logger } from "../../logger";
 
 // Ensure environment variables are loaded
 dotenv.config();

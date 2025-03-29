@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { logger } from "../logger";
-import { twoChatMessenger } from "../service/TwoChatMessenger";
-import type { StandardizedWebhookPayload } from "../service/types/TwoChatTypes";
+import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
+import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
 
 export async function receiveWebhook(req: Request, res: Response): Promise<void> {
   try {
