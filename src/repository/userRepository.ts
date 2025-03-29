@@ -71,7 +71,7 @@ type Macros = z.infer<typeof MacrosSchema>;
 type Micro = z.infer<typeof MicroSchema>;
 type Food = z.infer<typeof FoodSchema>;
 type FoodLog = z.infer<typeof FoodLogSchema>;
-type Message = z.infer<typeof MessageSchema>;
+export type Message = z.infer<typeof MessageSchema>;
 export type User = z.infer<typeof UserSchema>;
 
 export class UserRepository {

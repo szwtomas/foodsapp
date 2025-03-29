@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { logger } from "../logger";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
-import { userRepository, UserSchema } from "../repository/userRepository";
+import { type Message, User, userRepository, UserSchema } from "../repository/userRepository";
 import { generateObject, generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
@@ -121,6 +121,13 @@ async function handleMessage(
 
   console.log("user is", user);
 
+  let lastConversationMessages: Message[] = []
+  if (user?.conversation?.length){
+    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+    lastConversationMessages = user.conversation.filter((msg) => msg.timestamp > last5Minutes);
+  }
+
+
   const { text: result } = await generateText({
     model: openai("o3-mini", { structuredOutputs: true }),
     tools: {
@@ -131,19 +138,13 @@ async function handleMessage(
         }),
         execute: executeRequestUserInformationTool
       })
-    }
-  })
+    },
+    system: systemPrompt(user, lastConversationMessages),
 
-  const { object } = await generateObject({
-    model: openai.responses("gpt-4o-mini"),
-    schema: z.object({
-      response: z.string(),
-    }),
-    system: systemPrompt,
-  });
+  })
 }
 
-const systemPrompt = `
+const systemPrompt = (user?: User, last5MinutesConversation?:Message[]): string => `
   Sos Nutrito, un asistente nutricional mediante WhatsApp 
   especializado en:
   1. Registrar los alimentos que consume el usuario con sus valores nutricionales, tanto calorías, como macronutrientes y micronutrientes.
@@ -222,6 +223,12 @@ const systemPrompt = `
   
   Usuario: "Quiero ver cómo vengo en la semana"
   Acción: generateReport con reportType="weekly"
+
+  # Información actual en la base de datos del usuario:
+  ${user}
+
+  # Últimos mensajes en la conversación:
+  ${last5MinutesConversation}
 `; 
 
 async function requestUserInformation(
