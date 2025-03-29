@@ -1,10 +1,26 @@
+import express from "express";
 import dotenv from "dotenv";
 import OpenAIClient from "./services/openAi/OpenAIClient";
-import OpenAIRequest from "./services/openAi/OpenAIRequest";
+import type OpenAIRequest from "./services/openAi/OpenAIRequest";
+import api from "./routes/api";
+import webhookRouter from "./routes/webhook";
 
 dotenv.config();
 
-console.log("Hello, World!"); 
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+
+// Routes
+app.use(api);
+app.use(webhookRouter);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 (async () => {
     const apiKey = process.env.OPENAI_API_KEY || "your-api-key-here";
