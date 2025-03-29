@@ -23,8 +23,9 @@ console.log("Hello, World!");
         instructions: "Habla como un pirata."
     };
     try {
-        const response = await client.getResponse(request);
-        console.log(response);
+        // const response = await client.getResponse(request);
+        const audio = await client.transcriptAudio("https://www.pacdv.com/sounds/voices/you-can-do-it.wav");
+        console.log(audio);
     } catch (error) {
         console.error(error);
     }
