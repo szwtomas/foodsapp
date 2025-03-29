@@ -12,8 +12,10 @@ export async function receiveWebhook(
   res: Response
 ): Promise<void> {
   try {
+    console.log("received webhook");
     const { body } = req;
 
+    console.log("body is", body);
     // Process the webhook payload
     const payload = await twoChatMessenger.processWebhookPayload(body);
 
@@ -50,7 +52,7 @@ export async function receiveWebhook(
 
     res.status(200).send({ message: "Webhook processed successfully" });
   } catch (error) {
-    logger.error(error, `Error processing webhook`);
+    logger.error(error, "Error processing webhook");
     res
       .status(500)
       .send({ message: "An error occurred while processing webhook" });
@@ -63,6 +65,8 @@ async function handleMessage(
   fromNumber: string
 ) {
   const user = userRepository.getUser(fromNumber);
+
+  console.log("user is", user);
 
   const { object } = await generateObject({
     model: openai.responses("gpt-4o-mini"),

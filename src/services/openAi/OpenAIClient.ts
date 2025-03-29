@@ -1,5 +1,5 @@
 import OpenAI, { toFile } from 'openai';
-import OpenAIRequest from "./OpenAIRequest";
+import type OpenAIRequest from "./OpenAIRequest";
 import { z } from "zod";
 
 const CalendarEvent = z.object({
@@ -59,4 +59,4 @@ class OpenAIClient {
     }
 }
 
-export default OpenAIClient;
+export const openAiClient = new OpenAIClient();

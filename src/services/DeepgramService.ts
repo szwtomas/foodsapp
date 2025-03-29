@@ -1,17 +1,34 @@
+import { createClient, type DeepgramClient } from '@deepgram/sdk';
 import { logger } from '../logger';
 
-// Simple placeholder for the Deepgram service
-// In a real implementation, you would connect to the Deepgram API
 class DeepgramService {
+  private deepgram: DeepgramClient;
+
+	constructor() {
+		this.deepgram = createClient(process.env.DEEPGRAM_API_KEY);
+	}
+  
   async transcribeAudio(audioUrl: string): Promise<string> {
-    try {
-      logger.info(`Transcribing audio from ${audioUrl}`);
-      // This is a placeholder - in a real implementation, you would call the Deepgram API
-      return "Audio transcription placeholder";
-    } catch (error) {
-      logger.error(`Failed to transcribe audio: ${error}`);
-      throw new Error('Audio transcription failed');
-    }
+		try {
+			const { result, error } =
+				await this.deepgram.listen.prerecorded.transcribeUrl(
+					{ url: audioUrl },
+					{
+						model: "nova-2",
+						smart_format: true,
+						detect_language: true,
+					},
+				);
+
+			if (error) {
+				throw new Error(`Transcription error ${error?.message}`);
+			}
+
+			return result.results.channels[0].alternatives[0].transcript;
+		} catch (error) {
+			logger.error(`Audio transcription failed: ${error}`);
+			throw new Error("Audio transcription failed");
+		}
   }
 }
 
