@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import api from "./routes/api";
 import webhookRouter from "./routes/webhook";
+import OpenAIClient from "./services/openAi/OpenAIClient";
+import OpenAIRequest from "./services/openAi/OpenAIRequest";
 
 dotenv.config();
 
@@ -29,8 +31,8 @@ app.listen(PORT, () => {
 //             {
 //                 role: "user",
 //                 content: [
-//                     // { type: "input_text", text: "What can you see in the image?" },
-//                     // { type: "input_image", image_url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw", detail: "high" },
+//                     // { type: "text", text: "What can you see in the image?" },
+//                     // { type: "image", image: new URL("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw") },
 //                     { type: "input_audio", audio_url: "https://www.pacdv.com/sounds/voices/you-can-do-it.wav" }
 //                 ]
 //             }
@@ -40,6 +42,7 @@ app.listen(PORT, () => {
 //     try {
 //         const response = await client.getResponse(request);
 //         // const audio = await client.transcriptAudio("https://www.pacdv.com/sounds/voices/you-can-do-it.wav");
+//         console.log("HOLA")
 //         console.log(response);
 //     } catch (error) {
 //         console.error(error);

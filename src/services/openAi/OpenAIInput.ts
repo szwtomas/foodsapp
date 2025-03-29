@@ -3,14 +3,13 @@
 type OpenAIContent = OpenAIText | OpenAIImage | OpenAIAudio;
 
 interface OpenAIText {
-    type: "input_text";
+    type: "text";
     text: string;
 }
 
 interface OpenAIImage {
-    type: "input_image";
-    image_url: string;
-    detail: string;
+    type: "image";
+    image: URL;
 }
 
 interface OpenAIAudio {
@@ -20,7 +19,8 @@ interface OpenAIAudio {
 
 
 interface OpenAIInput {
-    role: "user" | "system";
+    role: "user" 
+    // | "bot";
     content: OpenAIContent[];  // Matches API
 }
 
