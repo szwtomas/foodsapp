@@ -22,11 +22,13 @@ const FoodSchema = z.object({
 });
 
 const FoodLogSchema = z.object({
+  id: z.string().min(1),
   description: z.string().min(1),
   totalMacros: MacrosSchema,
   totalMicros: z.array(MicroSchema),
   foods: z.array(FoodSchema),
   date: z.date(),
+  status: z.enum(["pending", "validated"]),
 });
 
 const MessageSchema = z.object({
@@ -247,6 +249,11 @@ export class UserRepository {
     return user?.foodLogs;
   }
 
+  getLastPendingFoodLogEntry(phoneNumber: string): FoodLog | undefined {
+    const user = this.users.get(phoneNumber);
+    return user?.foodLogs?.filter((log) => log.status === "pending").sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+  }
+
   // Get a specific food log by index
   getFoodLogByIndex(phoneNumber: string, index: number): FoodLog | undefined {
     const foodLogs = this.getFoodLogs(phoneNumber);
@@ -271,11 +278,11 @@ export class UserRepository {
   // Update a food log
   updateFoodLog(
     phoneNumber: string,
-    index: number,
+    id: string,
     updates: Partial<Omit<FoodLog, "date">>
   ): FoodLog | undefined {
     const user = this.users.get(phoneNumber);
-    if (!user || !user.foodLogs || index < 0 || index >= user.foodLogs.length)
+    if (!user || !user.foodLogs)
       return undefined;
 
     try {
@@ -284,15 +291,19 @@ export class UserRepository {
         .omit({ date: true })
         .parse(updates);
 
+      // Find the food log and create updated version
+      const foodLog = user.foodLogs.find(log => log.id === id);
+      if (!foodLog) return undefined;
+      
       const updatedFoodLog: FoodLog = {
-        ...user.foodLogs[index],
+        ...foodLog,
         ...validatedUpdates,
       };
 
       // Validate the complete food log object
       FoodLogSchema.parse(updatedFoodLog);
 
-      user.foodLogs[index] = updatedFoodLog;
+      user.foodLogs[user.foodLogs.findIndex(log => log.id === id)] = updatedFoodLog;
       return updatedFoodLog;
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
@@ -307,35 +318,31 @@ export class UserRepository {
   }
 
   // Delete a food log
-  deleteFoodLog(phoneNumber: string, index: number): boolean {
+  deleteFoodLog(phoneNumber: string, id: string): boolean {
     const user = this.users.get(phoneNumber);
-    if (!user || !user.foodLogs || index < 0 || index >= user.foodLogs.length)
+    if (!user || !user.foodLogs || !user.foodLogs.find(log => log.id === id))
       return false;
 
-    user.foodLogs.splice(index, 1);
+    user.foodLogs.splice(user.foodLogs.findIndex(log => log.id === id), 1);
     return true;
   }
 
   // Add a food to a specific food log
   addFoodToFoodLog(
     phoneNumber: string,
-    foodLogIndex: number,
+    id: string,
     foodData: Food
   ): Food | undefined {
     const user = this.users.get(phoneNumber);
-    if (
-      !user ||
-      !user.foodLogs ||
-      foodLogIndex < 0 ||
-      foodLogIndex >= user.foodLogs.length
-    )
+    if (!user || !user.foodLogs || !user.foodLogs.find(log => log.id === id))
       return undefined;
 
     try {
       // Validate the food data
       const validatedFood = FoodSchema.parse(foodData);
 
-      const foodLog = user.foodLogs[foodLogIndex];
+      const foodLog = user.foodLogs.find(log => log.id === id);
+      if (!foodLog) return undefined;
       foodLog.foods.push(validatedFood);
 
       // Recalculate total macros

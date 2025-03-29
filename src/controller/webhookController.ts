@@ -385,9 +385,7 @@ async function validateFoodLogEntry(
 }
 
 async function registerFoodLogEntry(
-  tool: z.infer<typeof registerFoodLogEntrySchema>,
-  userPhoneNumber: string,
-  fromNumber: string
+  userPhoneNumber: string
 ): Promise<string> {
   // Get existing food logs or create a new one for today
   const user = userRepository.getUser(userPhoneNumber);
@@ -395,75 +393,15 @@ async function registerFoodLogEntry(
     throw new Error(`User with phone number ${userPhoneNumber} not found`);
   }
   
-  // Convert the validated food to the format expected by the repository
-  const foodData = {
-    description: tool.validatedFood.name,
-    macros: {
-      protein: tool.validatedFood.macros.proteins,
-      carbs: tool.validatedFood.macros.carbs,
-      fats: tool.validatedFood.macros.fats
-    },
-    micros: tool.validatedFood.micros ? 
-      tool.validatedFood.micros.map(micro => ({
-        name: micro.name,
-        amount: micro.amount
-      })) : []
-  };
-  
-  // Get today's food log or create a new one
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  let foodLogIndex = -1;
-  const foodLogs = user.foodLogs || [];
-  
-  for (let i = 0; i < foodLogs.length; i++) {
-    const logDate = new Date(foodLogs[i].date);
-    logDate.setHours(0, 0, 0, 0);
-    
-    if (logDate.getTime() === today.getTime()) {
-      foodLogIndex = i;
-      break;
-    }
+  const lastPendingFoodLogEntry = userRepository.getLastPendingFoodLogEntry(userPhoneNumber);
+  if (!lastPendingFoodLogEntry) {
+    throw new Error(`No pending food log entry found for user with phone number ${userPhoneNumber}`);
   }
+
+  lastPendingFoodLogEntry.status = "validated";
+  userRepository.updateFoodLog(userPhoneNumber, lastPendingFoodLogEntry.id, lastPendingFoodLogEntry);
   
-  // If no food log exists for today, create one
-  if (foodLogIndex === -1) {
-    const newFoodLog = userRepository.addFoodLog(userPhoneNumber, {
-      description: `Food log for ${today.toLocaleDateString()}`,
-      totalMacros: { protein: 0, carbs: 0, fats: 0 },
-      totalMicros: [],
-      foods: []
-    });
-    
-    if (!newFoodLog) {
-      throw new Error(`Failed to create food log for user ${userPhoneNumber}`);
-    }
-    
-    foodLogIndex = (user.foodLogs?.length || 1) - 1;
-  }
-  
-  // Add the food to today's food log
-  const addedFood = userRepository.addFoodToFoodLog(
-    userPhoneNumber,
-    foodLogIndex,
-    foodData
-  );
-  
-  if (!addedFood) {
-    throw new Error(`Failed to add food to log for user ${userPhoneNumber}`);
-  }
-  
-  // Confirm to the user
-  const confirmationMessage = `¡Perfecto! He registrado tu ${tool.validatedFood.name} en tu diario alimenticio.`;
-  
-  await twoChatMessenger.sendMessage({
-    to_number: userPhoneNumber,
-    from_number: fromNumber,
-    text: confirmationMessage,
-  });
-  
-  return confirmationMessage;
+  return `Gracias por registrar tu consumo de ${lastPendingFoodLogEntry.description}`; // TODO NTH: insight about food
 }
 
 // Helper function to analyze food from description
