@@ -3,9 +3,61 @@ import { logger } from "../logger";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
 import { userRepository } from "../repository/userRepository";
-import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod";
+import { openai } from "@ai-sdk/openai";
+
+// Define the tools schemas
+const requestUserInformationSchema = z.object({
+  type: z.literal('requestUserInformation'),
+  missingFields: z.array(z.enum(['age', 'name', 'goal', 'gender', 'height', 'weight', 'physicalActivityLevel', 'dietaryRestrictions', 'diseases'])),
+});
+
+const generateReportSchema = z.object({
+  type: z.literal('generateReport'),
+  reportType: z.enum(['daily', 'weekly', 'monthly']),
+  userId: z.string(),
+});
+
+const validateFoodLogEntrySchema = z.object({
+  type: z.literal('validateFoodLogEntry'),
+  foodDescription: z.string(),
+  userId: z.string(),
+});
+
+const registerFoodLogEntrySchema = z.object({
+  type: z.literal('registerFoodLogEntry'),
+  validatedFood: z.object({
+    name: z.string(),
+    portion: z.string(),
+    calories: z.number(),
+    macros: z.object({
+      proteins: z.number(),
+      carbs: z.number(),
+      fats: z.number(),
+    }),
+    micros: z.array(z.object({
+      name: z.string(),
+      amount: z.number(),
+      unit: z.string(),
+    })).optional(),
+  }),
+  userId: z.string(),
+});
+
+// Combine all tool schemas
+const toolsSchema = z.discriminatedUnion('type', [
+  requestUserInformationSchema,
+  generateReportSchema,
+  validateFoodLogEntrySchema,
+  registerFoodLogEntrySchema,
+]);
+
+// Define the response schema that includes the tool call
+const responseSchema = z.object({
+  response: z.string(),
+  tool: toolsSchema.optional(),
+});
 
 export async function receiveWebhook(
   req: Request,
@@ -42,11 +94,11 @@ export async function receiveWebhook(
 
     // Respond with "hola" to any incoming message
 
-    await twoChatMessenger.sendMessage({
-      to_number: userPhoneNumber,
-      from_number: fromNumber,
-      text: "hola",
-    });
+    // await twoChatMessenger.sendMessage({
+    //   to_number: userPhoneNumber,
+    //   from_number: fromNumber,
+    //   text: "hola",
+    // });
 
     res.status(200).send({ message: "Webhook processed successfully" });
   } catch (error) {
@@ -63,7 +115,7 @@ async function handleMessage(
   fromNumber: string
 ) {
   const user = userRepository.getUser(fromNumber);
-
+  
   const { object } = await generateObject({
     model: openai.responses("gpt-4o-mini"),
     schema: z.object({
@@ -88,6 +140,7 @@ const systemPrompt = `
   Siempre que tengas que mostrarle algún dato, lo hagas de la manera más clara y entendible posible.
   Respondele con un estilo de lenguaje sencillo, simpático, profesional, cercano, amigable, directo, corto y argentino.
 
+  # Instrucciones
   Para realizar tu tarea de manera correcta, seguí las siguientes instrucciones:
   - Si el usuario no contiene la información completa que requerís, pídele al usuario que complete la información utilizando la tool de requestUserInformation. Nunca usar alguna otra tool si no cumple con la información que requerís.
     - La información que requerís es:
@@ -100,7 +153,334 @@ const systemPrompt = `
       - Nivel de actividad física (physicalActivityLevel) 
       - Restricciones alimentarias (dietaryRestrictions) (puede ser array vacío en caso de no tener)
       - Enfermedades (diseases) (puede ser array vacío en caso de no tener)
-    - Si el usuario no tiene alguna de la información requerida, NO uses ninguna otra tool hasta tener esto completo.
+  - Si el usuario no tiene alguna de la información requerida, UNICAMENTE utilizá la tool de requestUserInformation hasta tener esto completo.
+  - Si el usuario ya tiene la información completa, entonces identificarás que flujo seguir dependiendo del mensaje que envíe el usuario.
 
-  - 
-`;
+  # Registro de comidas de un usuario registrado
+  - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
+  - Al recibir un mensaje lo analizarás y crearás un resumen con la descripción de la comida que validarás con el usuario para verificar su correctitud.
+  - Si no podes identificar una comida en el mensaje, respondé amigablemente pidiendo más detalles.
+  - Para registrar una comida, primero utilizá la tool validateFoodLogEntry para identificar la comida y sus valores nutricionales.
+  - Una vez que el usuario valide la información, utilizá la tool registerFoodLogEntry para registrar la comida.
+  
+  # Herramientas disponibles
+  Tenés acceso a las siguientes herramientas:
+  
+  ## requestUserInformation
+  Esta herramienta solicita información faltante al usuario para completar su perfil.
+  Parámetros:
+  - missingFields: un array con los campos que faltan completar.
+  
+  ## generateReport
+  Esta herramienta genera un reporte nutricional para el usuario.
+  Parámetros:
+  - reportType: tipo de reporte ('daily', 'weekly', 'monthly')
+  - userId: ID del usuario
+  
+  ## validateFoodLogEntry
+  Esta herramienta identifica la comida enviada por el usuario y envía un mensaje para validar la descripción.
+  Parámetros:
+  - foodDescription: descripción de la comida
+  - userId: ID del usuario
+  
+  ## registerFoodLogEntry
+  Esta herramienta registra una entrada de comida una vez validada.
+  Parámetros:
+  - validatedFood: objeto con la información de la comida validada
+  - userId: ID del usuario
+  
+  # Usos de las herramientas
+  - Si el usuario está registrando comida: primero utiliza validateFoodLogEntry, luego espera confirmación, y finalmente registerFoodLogEntry.
+  - Si el usuario pide un reporte: utiliza generateReport.
+  - Si falta información del usuario: utiliza requestUserInformation.
+  
+  # Ejemplos
+  
+  Usuario: "Hola, comí una ensalada césar"
+  Acción: validateFoodLogEntry con foodDescription="ensalada césar"
+  
+  Usuario: "Si, es correcto"
+  Acción: registerFoodLogEntry con la información validada
+  
+  Usuario: "Quiero ver cómo vengo en la semana"
+  Acción: generateReport con reportType="weekly"
+`; 
+
+// Tool handler functions
+async function handleTools(tool: z.infer<typeof toolsSchema>, userPhoneNumber: string, fromNumber: string) {
+  switch (tool.type) {
+    case 'requestUserInformation':
+      return await requestUserInformation(tool, userPhoneNumber, fromNumber);
+    case 'generateReport':
+      return await generateReport(tool, userPhoneNumber, fromNumber);
+    case 'validateFoodLogEntry':
+      return await validateFoodLogEntry(tool, userPhoneNumber, fromNumber);
+    case 'registerFoodLogEntry':
+      return await registerFoodLogEntry(tool, userPhoneNumber, fromNumber);
+    default:
+      return 'Unsupported tool';
+  }
+}
+
+async function requestUserInformation(
+  tool: z.infer<typeof requestUserInformationSchema>,
+  userPhoneNumber: string,
+  fromNumber: string
+): Promise<string> {
+  // Get current user info
+  const user = userRepository.getUser(userPhoneNumber);
+  
+  // Generate a message asking for the missing information
+  const missingFieldsText = tool.missingFields.join(', ');
+  const message = `Para completar tu registro, necesito la siguiente información: ${missingFieldsText}`;
+  
+  // Send the message to the user
+  await twoChatMessenger.sendMessage({
+    to_number: userPhoneNumber,
+    from_number: fromNumber,
+    text: message,
+  });
+  
+  return message;
+}
+
+async function generateReport(
+  tool: z.infer<typeof generateReportSchema>,
+  userPhoneNumber: string,
+  fromNumber: string
+): Promise<string> {
+  // Get user data
+  const user = userRepository.getUser(userPhoneNumber);
+  if (!user) {
+    throw new Error(`User with phone number ${userPhoneNumber} not found`);
+  }
+  
+  // Calculate date range based on report type
+  const endDate = new Date();
+  const startDate = new Date();
+  
+  switch (tool.reportType) {
+    case 'daily':
+      // Set start date to beginning of current day
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'weekly':
+      // Set start date to 7 days ago
+      startDate.setDate(startDate.getDate() - 7);
+      break;
+    case 'monthly':
+      // Set start date to 30 days ago
+      startDate.setDate(startDate.getDate() - 30);
+      break;
+  }
+  
+  // Get food logs for the specified date range
+  const foodLogs = userRepository.getFoodLogsByDateRange(userPhoneNumber, startDate, endDate) || [];
+  
+  // Calculate nutritional averages
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFats = 0;
+  let totalCalories = 0;
+  
+  foodLogs.forEach(log => {
+    totalProtein += log.totalMacros.protein;
+    totalCarbs += log.totalMacros.carbs;
+    totalFats += log.totalMacros.fats;
+    // Estimate calories based on macros (4 cal/g protein, 4 cal/g carbs, 9 cal/g fat)
+    totalCalories += (log.totalMacros.protein * 4) + (log.totalMacros.carbs * 4) + (log.totalMacros.fats * 9);
+  });
+  
+  const days = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const averageProtein = totalProtein / days;
+  const averageCarbs = totalCarbs / days;
+  const averageFats = totalFats / days;
+  const averageCalories = totalCalories / days;
+  
+  // Generate simple analysis based on user goals
+  let analysis = '';
+  if (user.goal && user.goal.length > 0) {
+    if (user.goal.includes('loseWeight') && averageCalories > 2000) {
+      analysis = 'Estás consumiendo más calorías de las recomendadas para bajar de peso.';
+    } else if (user.goal.includes('gainWeight') && averageCalories < 2500) {
+      analysis = 'Estás consumiendo menos calorías de las recomendadas para aumentar de peso.';
+    } else if (user.goal.includes('eatBalanced')) {
+      const proteinPercentage = (averageProtein * 4) / averageCalories;
+      const carbsPercentage = (averageCarbs * 4) / averageCalories;
+      const fatsPercentage = (averageFats * 9) / averageCalories;
+      
+      if (proteinPercentage < 0.15 || proteinPercentage > 0.35) {
+        analysis = 'Tu consumo de proteínas está fuera del rango recomendado (15-35%).';
+      } else if (carbsPercentage < 0.45 || carbsPercentage > 0.65) {
+        analysis = 'Tu consumo de carbohidratos está fuera del rango recomendado (45-65%).';
+      } else if (fatsPercentage < 0.20 || fatsPercentage > 0.35) {
+        analysis = 'Tu consumo de grasas está fuera del rango recomendado (20-35%).';
+      } else {
+        analysis = 'Tu dieta está bien balanceada. ¡Sigue así!';
+      }
+    }
+  }
+  
+  if (!analysis) {
+    analysis = 'No hay suficientes datos para generar un análisis detallado.';
+  }
+  
+  // Generate report from calculated data
+  const reportText = `Aquí está tu reporte nutricional ${tool.reportType}:
+` +
+    `- Calorías promedio: ${averageCalories.toFixed(0)} kcal
+` +
+    `- Proteínas promedio: ${averageProtein.toFixed(1)}g
+` +
+    `- Carbohidratos promedio: ${averageCarbs.toFixed(1)}g
+` +
+    `- Grasas promedio: ${averageFats.toFixed(1)}g
+` +
+    `- Análisis: ${analysis}`;
+  
+  // Send the report to the user
+  await twoChatMessenger.sendMessage({
+    to_number: userPhoneNumber,
+    from_number: fromNumber,
+    text: reportText,
+  });
+  
+  return reportText;
+}
+
+async function validateFoodLogEntry(
+  tool: z.infer<typeof validateFoodLogEntrySchema>,
+  userPhoneNumber: string,
+  fromNumber: string
+): Promise<string> {
+  // Identify the food and nutritional values
+  const foodAnalysis = await analyzeFood(tool.foodDescription);
+  
+  // Construct validation message
+  const validationMessage = `Detecté que consumiste: ${foodAnalysis.name}, ${foodAnalysis.portion}
+` +
+    `Con aproximadamente:
+` +
+    `- ${foodAnalysis.calories} calorías
+` +
+    `- ${foodAnalysis.macros.proteins}g de proteínas
+` +
+    `- ${foodAnalysis.macros.carbs}g de carbohidratos
+` +
+    `- ${foodAnalysis.macros.fats}g de grasas
+` +
+    `¿Es esto correcto?`;
+  
+  // Send validation message to user
+  await twoChatMessenger.sendMessage({
+    to_number: userPhoneNumber,
+    from_number: fromNumber,
+    text: validationMessage,
+  });
+  
+  return validationMessage;
+}
+
+async function registerFoodLogEntry(
+  tool: z.infer<typeof registerFoodLogEntrySchema>,
+  userPhoneNumber: string,
+  fromNumber: string
+): Promise<string> {
+  // Get existing food logs or create a new one for today
+  const user = userRepository.getUser(userPhoneNumber);
+  if (!user) {
+    throw new Error(`User with phone number ${userPhoneNumber} not found`);
+  }
+  
+  // Convert the validated food to the format expected by the repository
+  const foodData = {
+    description: tool.validatedFood.name,
+    macros: {
+      protein: tool.validatedFood.macros.proteins,
+      carbs: tool.validatedFood.macros.carbs,
+      fats: tool.validatedFood.macros.fats
+    },
+    micros: tool.validatedFood.micros ? 
+      tool.validatedFood.micros.map(micro => ({
+        name: micro.name,
+        amount: micro.amount
+      })) : []
+  };
+  
+  // Get today's food log or create a new one
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let foodLogIndex = -1;
+  const foodLogs = user.foodLogs || [];
+  
+  for (let i = 0; i < foodLogs.length; i++) {
+    const logDate = new Date(foodLogs[i].date);
+    logDate.setHours(0, 0, 0, 0);
+    
+    if (logDate.getTime() === today.getTime()) {
+      foodLogIndex = i;
+      break;
+    }
+  }
+  
+  // If no food log exists for today, create one
+  if (foodLogIndex === -1) {
+    const newFoodLog = userRepository.addFoodLog(userPhoneNumber, {
+      description: `Food log for ${today.toLocaleDateString()}`,
+      totalMacros: { protein: 0, carbs: 0, fats: 0 },
+      totalMicros: [],
+      foods: []
+    });
+    
+    if (!newFoodLog) {
+      throw new Error(`Failed to create food log for user ${userPhoneNumber}`);
+    }
+    
+    foodLogIndex = (user.foodLogs?.length || 1) - 1;
+  }
+  
+  // Add the food to today's food log
+  const addedFood = userRepository.addFoodToFoodLog(
+    userPhoneNumber,
+    foodLogIndex,
+    foodData
+  );
+  
+  if (!addedFood) {
+    throw new Error(`Failed to add food to log for user ${userPhoneNumber}`);
+  }
+  
+  // Confirm to the user
+  const confirmationMessage = `¡Perfecto! He registrado tu ${tool.validatedFood.name} en tu diario alimenticio.`;
+  
+  await twoChatMessenger.sendMessage({
+    to_number: userPhoneNumber,
+    from_number: fromNumber,
+    text: confirmationMessage,
+  });
+  
+  return confirmationMessage;
+}
+
+// Helper function to analyze food from description
+async function analyzeFood(foodDescription: string) {
+  // This would typically call an external nutrition API or use a model
+  // For now, we're mocking the response
+  return {
+    name: foodDescription,
+    portion: '1 porción',
+    calories: 250,
+    macros: {
+      proteins: 15,
+      carbs: 30,
+      fats: 10,
+    },
+    micros: [
+      { name: 'Vitamin C', amount: 10, unit: 'mg' },
+      { name: 'Calcium', amount: 100, unit: 'mg' },
+    ],
+  };
+}
+
+
