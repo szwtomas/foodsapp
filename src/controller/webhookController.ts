@@ -12,6 +12,7 @@ import { generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
+import { validateFoodLogEntry } from "../tools/validateFoodLogEntry";
 
 export async function receiveWebhook(
   req: Request,
@@ -102,6 +103,25 @@ async function handleMessage(
         }),
         execute: executeRequestUserInformationTool,
       }),
+      validateFoodLogEntry: tool({
+        description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
+        parameters: z.object({
+          userPhone: z.string().describe("El número de teléfono del usuario")
+        }),
+        execute: async ({ userPhone }) => {
+          // Get the conversation context from the repository
+          const user = userRepository.getUser(userPhone);
+          if (!user || !user.conversation) {
+            return "No se encontró el usuario o no tiene conversación.";
+          }
+          
+          // Use the last few messages as context
+          const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+          const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
+          
+          return await validateFoodLogEntry(userPhone, recentMessages);
+        }
+      })
     },
     prompt: lastConversationMessages.length
       ? lastConversationMessages[lastConversationMessages.length - 1]?.content
