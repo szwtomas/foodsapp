@@ -8,6 +8,7 @@ const api = express.Router();
 
 api.get("/health-check", use(healthCheckController.checkApiKey));
 api.get("/users", use(usersController.getAllUsers));
+api.get("/calories", use(usersController.getCalores));
 api.get("/api/twochat/check", use(twoChatController.checkApiKey));
 api.get("/api/twochat/numbers", use(twoChatController.getNumbers));
 api.post(

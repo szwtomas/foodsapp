@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import { CompleteUserSchema, User, userRepository, type UserSchema } from "../repository/userRepository";
-import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
+import { CompleteUserSchema, type User, userRepository, type UserSchema } from "../repository/userRepository";
 import { sendAssistantMessageAndAddToConversation } from "../helper/utility";
+import { userExpectedDailyCaloriesRepository } from "../repository/userExpectedDailyCaloriesRepository";
 
 export async function saveUserData(
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -12,7 +12,6 @@ export async function saveUserData(
   const updatedUser = userRepository.updateUser(receivedUser.phoneNumber, receivedUser);
 
   if (isCompleteUser(updatedUser)) {
-
     console.log(`actualice el user, ahora voy a mandar a ${receivedUser.phoneNumber} el mensaje de bienvenida`);
 
     await sendAssistantMessageAndAddToConversation(receivedUser.phoneNumber, 
@@ -25,6 +24,8 @@ export async function saveUserData(
     Luego validaré el alimento y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!
     
     ¡A comer rico! Pero sanito 🥑`);
+
+    userExpectedDailyCaloriesRepository.addEntry(receivedUser.phoneNumber);
 
     return "Usuario registrado correctamente, NO LLAMAR A MAS TOOLS, específicamente NO llamar a requestUserInformation.";
   }
