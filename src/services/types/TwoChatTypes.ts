@@ -246,7 +246,7 @@ export interface MessageContent {
 
 export interface Message {
   uuid: string;
-  timestamp: number;
+  timestamp: Date;
   session_key: string;
   message: MessageContent;
   remote_phone_number: string;

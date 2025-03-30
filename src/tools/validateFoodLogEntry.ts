@@ -80,7 +80,7 @@ export async function validateFoodLogEntry(
           
           Responde SOLO con el objeto JSON, sin ningún texto adicional.`
         },
-        { role: "user", content: conversationContext.map(msg => msg.content).join("\n") }
+        { role: "user", content: conversationContext.map(msg => msg.content.text + "\n" + (msg.content.media?.url || "")).join("\n") }
       ]
     });
     

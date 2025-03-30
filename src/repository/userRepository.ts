@@ -31,10 +31,21 @@ const FoodLogSchema = z.object({
   status: z.enum(["pending", "validated"]),
 });
 
+const MessageContentSchema = z.object({
+  text: z.string().min(1).optional(),
+  media: z
+    .object({
+      url: z.string().url(),
+      type: z.string(),
+      mimeType: z.string(),
+    })
+    .optional()
+});
+
 const MessageSchema = z.object({
-  content: z.string().min(1),
+  content: MessageContentSchema,
   timestamp: z.date(),
-  isUser: z.boolean(),
+  sender: z.enum(["user", "assistant"]),
 });
 
 export const UserSchema = z.object({

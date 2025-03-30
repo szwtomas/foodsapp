@@ -77,6 +77,10 @@ async function handleMessage(
   if (!user) {
     user = userRepository.createUserFromNumber(fromNumber);
   }
+  userRepository.addMessage(user.phoneNumber, {
+    content: { text: payload.content.text, media: payload.content.media },
+    sender: "user",
+  });
 
   let lastConversationMessages: Message[] = [];
   if (user?.conversation?.length) {
@@ -106,9 +110,10 @@ async function handleMessage(
       validateFoodLogEntry: tool({
         description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
         parameters: z.object({
-          userPhone: z.string().describe("El número de teléfono del usuario")
+          userPhone: z.string().describe("El número de teléfono del usuario"),
+          conversationContext: z.array(z.custom<Message>())
         }),
-        execute: async ({ userPhone }) => {
+        execute: async ({ userPhone, conversationContext }) => {
           // Get the conversation context from the repository
           const user = userRepository.getUser(userPhone);
           if (!user || !user.conversation) {
@@ -123,9 +128,7 @@ async function handleMessage(
         }
       })
     },
-    prompt: lastConversationMessages.length
-      ? lastConversationMessages[lastConversationMessages.length - 1]?.content
-      : "",
+    prompt: lastConversationMessages.map(msg => msg.content.text + "\n" + (msg.content.media?.url || "")).join("\n"),
     system: systemPrompt(user, lastConversationMessages),
   });
   console.log(
