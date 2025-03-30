@@ -54,15 +54,15 @@ export async function receiveWebhook(
 }
 
 function userIsInOnboarding(user: User): boolean {
-  return user.age === undefined
-    || user.name === undefined
-    || user.goal === undefined
-    || user.sex === undefined
-    || user.height === undefined
-    || user.weight === undefined
-    || user.physicalActivityLevel === undefined
-    || user.dietaryRestrictions === undefined
-    || user.diseases === undefined;
+    return user.age === undefined
+        || user.name === undefined
+        || user.goal === undefined
+        || user.sex === undefined
+        || user.height === undefined
+        || user.weight === undefined
+        || user.physicalActivityLevel === undefined
+        || user.dietaryRestrictions === undefined
+        || user.diseases === undefined;
 }
 
 async function handleMessage(
@@ -72,13 +72,13 @@ async function handleMessage(
     let user = userRepository.getUser(fromNumber);
     console.log("user is", user);
     if (!user) {
-      user = userRepository.createUserFromNumber(fromNumber);
-      userRepository.addMessage(user.phoneNumber, {
-        content: { text: payload.content.text, media: payload.content.media },
-        sender: "user",
-      });
+        user = userRepository.createUserFromNumber(fromNumber);
+        userRepository.addMessage(user.phoneNumber, {
+            content: { text: payload.content.text, media: payload.content.media },
+            sender: "user",
+        });
 
-      const introMessage = `Hola! Soy Nutrito, tu asistente nutricional de Foodsapp! 😄 Podrías contarme un poco de vos?
+        const introMessage = `Hola! Soy Nutrito, tu asistente nutricional de Foodsapp! 😄 Podrías contarme un poco de vos?
 Para poder ayudarte lo mejor posible voy a necesitar algunos datos, me los podés contar por texto o audio, como te sea más cómodo.Por favor, contame la siguiente información:
 - Edad
 - Nombre
@@ -93,14 +93,14 @@ Para poder ayudarte lo mejor posible voy a necesitar algunos datos, me los podé
 Gracias y a trabajar juntos! 🍓`;
 
         userRepository.addMessage(user.phoneNumber, {
-          content: { text: introMessage },
-          sender: "assistant",
+            content: { text: introMessage },
+            sender: "assistant",
         });
 
         await twoChatMessenger.sendMessage({
-          to_number: fromNumber,
-          from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
-          text: introMessage
+            to_number: fromNumber,
+            from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
+            text: introMessage
         });
 
         return;
@@ -119,178 +119,190 @@ Gracias y a trabajar juntos! 🍓`;
     }
 
     if (userIsInOnboarding(user)) {
-      console.log("user is in onboarding");
-      const { text: result, steps } = await generateText({
-        model: openai("o3-mini", { structuredOutputs: true }),
-        prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
-        system: onboardingSystemPrompt(user, lastConversationMessages),
-        maxSteps: 2,
-        tools: {
-          requestUserInformation: tool({
-            description:
-                "Solicita información al usuario para completar su perfil si su mensaje no aporta datos.",
-            parameters: z.object({
-                user: z
-                    .object({
-                        phoneNumber: z.string(),
-                    })
-                    .describe(
-                        `El numero de telefono del usuario, es siempre ${user.phoneNumber}`
-                    ),
-            }),
-            execute: executeRequestUserInformationTool,
-          }),
-          saveUserInformation: tool({
-              description: "Guarda la información del usuario si su mensaje aporta datos.",
-              parameters: z.object({
-                user: z.object({
-                  phoneNumber: z.string().describe("El numero de telefono del usuario, provisto en el ultimo mensaje del usuario"),
-                  age: z.number().describe("La edad del usuario, provista en el ultimo mensaje del usuario"),
-                  name: z.string().describe("El nombre del usuario, provisto en el ultimo mensaje del usuario"),
-                  goal: z.array(z.string()).describe("El objetivo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods."),
-                  sex: z.string().describe("El sexo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario lo menciona en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other"),
-                  height: z.number().describe("La altura del usuario, provista en el ultimo mensaje del usuario"),
-                  weight: z.number().describe("El peso del usuario, provisto en el ultimo mensaje del usuario"),
-                  physicalActivityLevel: z.string().describe("El nivel de actividad física del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate."),
-                  diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario"),
-                  dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario"),
+        console.log("user is in onboarding");
+        const { text: result, steps } = await generateText({
+            model: openai("o3-mini", { structuredOutputs: true }),
+            prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
+            system: onboardingSystemPrompt(user, lastConversationMessages),
+            maxSteps: 2,
+            tools: {
+                requestUserInformation: tool({
+                    description:
+                        "Solicita información al usuario para completar su perfil si su mensaje no aporta datos.",
+                    parameters: z.object({
+                        user: z
+                            .object({
+                                phoneNumber: z.string(),
+                            })
+                            .describe(
+                                `El numero de telefono del usuario, es siempre ${user.phoneNumber}`
+                            ),
+                    }),
+                    execute: executeRequestUserInformationTool,
+                }),
+                saveUserInformation: tool({
+                    description: "Guarda la información del usuario si su mensaje aporta datos.",
+                    parameters: z.object({
+                        user: z.object({
+                            phoneNumber: z.string().describe("El numero de telefono del usuario, provisto en el ultimo mensaje del usuario"),
+                            age: z.number().describe("La edad del usuario, provista en el ultimo mensaje del usuario"),
+                            name: z.string().describe("El nombre del usuario, provisto en el ultimo mensaje del usuario"),
+                            goal: z.array(z.string()).describe("El objetivo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods."),
+                            sex: z.string().describe("El sexo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario lo menciona en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other"),
+                            height: z.number().describe("La altura del usuario, provista en el ultimo mensaje del usuario"),
+                            weight: z.number().describe("El peso del usuario, provisto en el ultimo mensaje del usuario"),
+                            physicalActivityLevel: z.string().describe("El nivel de actividad física del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate."),
+                            diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario"),
+                            dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario"),
+                        })
+                    }),
+                    execute: saveUserData
                 })
-              }),
-              execute: saveUserData
-          })
-        }
-      });
+            }
+        });
 
-      console.log("result", result);
-      console.log("steps", steps);
-      console.log("user is in onboarding flow returned");
-      const newUserData = userRepository.getUser(fromNumber);
-      console.log("newUserData after flow", newUserData);
-      return;
+        console.log("result", result);
+        console.log("steps", steps);
+        console.log("user is in onboarding flow returned");
+        const newUserData = userRepository.getUser(fromNumber);
+        console.log("newUserData after flow", newUserData);
+        return;
     }
-    
+
     console.log("user is not in onboarding!!!");
-    const { text: result, steps } = await generateText({
-        model: openai("o3-mini", { structuredOutputs: true }),
-        tools: {
-            // requestUserInformation: tool({
-            //     description:
-            //         "Solicita información al usuario para completar su perfil.",
-            //     parameters: z.object({
-            //         user: z
-            //             .object({
-            //                 phoneNumber: z.string(),
-            //             })
-            //             .describe(
-            //                 "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
-            //             ),
-            //     }),
-            //     execute: executeRequestUserInformationTool,
-            // }),
-            newPendingFoodLogEntry: tool({
-                description: "Extrae descripcion de comida de los mensajes del usuario para registrar la comida en estado pendiente de validacion.",
-                parameters: z.object({
-                    userPhone: z.string().describe("El número de teléfono del usuario"),
-                    conversationContext: z.array(
-                        z.object({
-                            content: z.object({
-                                text: z.string(),
-                                media: z.object({
-                                    url: z.string(),
-                                    type: z.string(),
-                                    mimeType: z.string()
-                                })
-                            }),
-                            timestamp: z.string(), // Using string for date compatibility with JSON schema
-                            sender: z.enum(["user", "assistant"])
-                        })
-                    )
-                }),
-                execute: async ({ userPhone, conversationContext }) => {
-                    // Convert the conversation context to the format expected by newPendingFoodLogEntry
-                    // This is already in the right format since we defined the schema above
-
-                    const user = userRepository.getUser(userPhone);
-                    if (!user || !user.conversation) {
-                        return "No se encontró el usuario o no tiene conversación.";
+    if (payload.content.media) {
+        const { text: result, steps } = await generateText({
+            model: openai("o3-mini", { structuredOutputs: true }),
+            tools: {
+                processImage: tool({
+                    description: "Procesa una imagen para identificar alimentos.",
+                    parameters: z.object({
+                        userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
+                        imageUrl: z.string().describe("URL de la imagen a procesar")
+                    }),
+                    execute: async ({ userPhoneNumber, imageUrl }) => {
+                        return await processImage(userPhoneNumber, imageUrl);
                     }
+                }),
+                generateReport: tool({
+                    description: "Genera un reporte nutricional para el usuario.",
+                    parameters: z.object({
+                        userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
+                        startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
+                        endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
+                    }),
+                    execute: async ({ userPhoneNumber, startDate, endDate }) => {
+                        return await generateReport(userPhoneNumber, startDate, endDate);
+                    }
+                })
+            },
+            prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
+            system: systemPrompt(user, lastConversationMessages),
+            maxSteps: 2
+        });
+        console.log(
+            "stepsTaken: ",
+            steps.flatMap((step) => step.toolCalls)
+        );
+        return result;
+    } else {
+        const { text: result, steps } = await generateText({
+            model: openai("o3-mini", { structuredOutputs: true }),
+            tools: {
+                newPendingFoodLogEntry: tool({
+                    description: "Extrae descripcion de comida de los mensajes del usuario para registrar la comida en estado pendiente de validacion.",
+                    parameters: z.object({
+                        userPhone: z.string().describe("El número de teléfono del usuario"),
+                        conversationContext: z.array(
+                            z.object({
+                                content: z.object({
+                                    text: z.string(),
+                                    media: z.object({
+                                        url: z.string(),
+                                        type: z.string(),
+                                        mimeType: z.string()
+                                    })
+                                }),
+                                timestamp: z.string(), // Using string for date compatibility with JSON schema
+                                sender: z.enum(["user", "assistant"])
+                            })
+                        )
+                    }),
+                    execute: async ({ userPhone, conversationContext }) => {
+                        // Convert the conversation context to the format expected by newPendingFoodLogEntry
+                        // This is already in the right format since we defined the schema above
 
-                    // Use the last few messages as context
-                    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
-                    const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
+                        const user = userRepository.getUser(userPhone);
+                        if (!user || !user.conversation) {
+                            return "No se encontró el usuario o no tiene conversación.";
+                        }
 
-                    // Pass the messages directly since they're already in the correct format
-                    return await newPendingFoodLogEntry(userPhone, conversationContext);
-                }
-            }),
-            pendingFoodLogEntryCorrection: tool({
-                description: "Corrige la entrada de comida pendiente.",
-                parameters: z.object({
-                    userPhone: z.string().describe("El número de teléfono del usuario"),
-                    conversationContext: z.array(
-                        z.object({
-                            content: z.object({
-                                text: z.string(),
-                                media: z.object({
-                                    url: z.string(),
-                                    type: z.string(),
-                                    mimeType: z.string()
-                                })
-                            }),
-                            timestamp: z.string(), // Using string for date compatibility with JSON schema
-                            sender: z.enum(["user", "assistant"])
-                        })
-                    )
-                }),
-                execute: async ({ userPhone, conversationContext }) => {
-                    return await pendingFoodLogEntryCorrection(userPhone, conversationContext);
-                }
-            }),
-            foodLogEntryConfirmation: tool({
-                description: "Registra la validación de la última entrada de comida pendiente.",
-                parameters: z.object({
-                    userPhoneNumber: z.string().describe("El número de teléfono del usuario")
-                }),
-                execute: async ({ userPhoneNumber }) => {
-                    return await foodLogEntryConfirmation(userPhoneNumber);
-                }
-            }),
-            processImage: tool({
-                description: "Procesa una imagen para identificar alimentos.",
-                parameters: z.object({
-                    userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
-                    imageUrl: z.string().describe("URL de la imagen a procesar")
-                }),
-                execute: async ({ userPhoneNumber, imageUrl }) => {
-                    return await processImage(userPhoneNumber, imageUrl);
-                }
-            }),
+                        // Use the last few messages as context
+                        const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+                        const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
 
-            generateReport: tool({
-                description: "Genera un reporte nutricional para el usuario.",
-                parameters: z.object({
-                    userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
-                    startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
-                    endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
+                        // Pass the messages directly since they're already in the correct format
+                        return await newPendingFoodLogEntry(userPhone, conversationContext);
+                    }
                 }),
-                execute: async ({ userPhoneNumber, startDate, endDate }) => {
-                    return await generateReport(userPhoneNumber, startDate, endDate);
-                }
-            }),
-        },
-        prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
-        system: systemPrompt(user, lastConversationMessages),
-        maxSteps: 2
-    });
-    console.log(
-        "stepsTaken: ",
-        steps.flatMap((step) => step.toolCalls)
-    );
+                pendingFoodLogEntryCorrection: tool({
+                    description: "Corrige la entrada de comida pendiente.",
+                    parameters: z.object({
+                        userPhone: z.string().describe("El número de teléfono del usuario"),
+                        conversationContext: z.array(
+                            z.object({
+                                content: z.object({
+                                    text: z.string(),
+                                    media: z.object({
+                                        url: z.string(),
+                                        type: z.string(),
+                                        mimeType: z.string()
+                                    })
+                                }),
+                                timestamp: z.string(), // Using string for date compatibility with JSON schema
+                                sender: z.enum(["user", "assistant"])
+                            })
+                        )
+                    }),
+                    execute: async ({ userPhone, conversationContext }) => {
+                        return await pendingFoodLogEntryCorrection(userPhone, conversationContext);
+                    }
+                }),
+                foodLogEntryConfirmation: tool({
+                    description: "Registra la validación de la última entrada de comida pendiente.",
+                    parameters: z.object({
+                        userPhoneNumber: z.string().describe("El número de teléfono del usuario")
+                    }),
+                    execute: async ({ userPhoneNumber }) => {
+                        return await foodLogEntryConfirmation(userPhoneNumber);
+                    }
+                }),
+                generateReport: tool({
+                    description: "Genera un reporte nutricional para el usuario.",
+                    parameters: z.object({
+                        userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
+                        startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
+                        endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
+                    }),
+                    execute: async ({ userPhoneNumber, startDate, endDate }) => {
+                        return await generateReport(userPhoneNumber, startDate, endDate);
+                    }
+                }),
+            },
+            prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
+            system: systemPrompt(user, lastConversationMessages),
+            maxSteps: 2
+        });
+        console.log(
+            "stepsTaken: ",
+            steps.flatMap((step) => step.toolCalls)
+        );
+    }
 }
 
 const onboardingSystemPrompt = (
-  user?: User,
-  last5MinutesConversation?: Message[]
+    user?: User,
+    last5MinutesConversation?: Message[]
 ): string => `
 Sos Nutrito, un asistente nutricional mediante WhatsApp 
   especializado en:
