@@ -78,8 +78,13 @@ async function handleMessage(
             sender: "user",
         });
 
-        const introMessage = `Hola! Soy Nutrito, tu asistente nutricional de Foodsapp! 😄 Podrías contarme un poco de vos?
-Para poder ayudarte lo mejor posible voy a necesitar algunos datos, me los podés contar por texto o audio, como te sea más cómodo.Por favor, contame la siguiente información:
+        const introMessage = `Hola! Soy Nutrito, *tu asistente nutricional de Foodsapp* 🌽🍔🍇!
+    
+    Me crearon para ayudarte a *alcanzar tus objetivos nutricionales* teniendo en cuenta tus preferencias y restricciones alimentarias.
+
+    Para poder ayudarte lo mejor posible, *voy a necesitar algunos datos necesarios*. Me los podés contar por texto o audio, como te sea más cómodo.
+    
+    Por favor, pasame la siguiente información:
 - Edad
 - Nombre
 - Objetivo físico (bajar de peso, ganar peso, mantenerse, etc)
@@ -88,9 +93,7 @@ Para poder ayudarte lo mejor posible voy a necesitar algunos datos, me los podé
 - Peso en kg
 - Nivel de actividad física (sedentario, ligero, moderado, activo, muy activo)
 - Restricciones alimentarias, mencionando si tenés o no
-- Enfermedades, o avisando que no tenés ninguna si es el caso
-
-Gracias y a trabajar juntos! 🍓`;
+- Enfermedades, o avisando que no tenés ninguna si es el caso`;
 
         userRepository.addMessage(user.phoneNumber, {
             content: { text: introMessage },
