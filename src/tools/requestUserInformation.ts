@@ -45,13 +45,13 @@ export async function executeRequestUserInformationTool({
   }
 
   const missingUserFields = {
-    age: userFromDb.age === undefined,
-    name: userFromDb.name === undefined,
-    goal: userFromDb.goal === undefined,
-    sex: userFromDb.sex === undefined,
-    height: userFromDb.height === undefined,
-    weight: userFromDb.weight === undefined,
-    physicalActivityLevel: userFromDb.physicalActivityLevel === undefined,
+    age: userFromDb.age === undefined || userFromDb.age === 0,
+    name: userFromDb.name === undefined || userFromDb.name === '',
+    goal: userFromDb.goal === undefined || userFromDb.goal.length === 0,
+    sex: userFromDb.sex === undefined || userFromDb.sex === '',
+    height: userFromDb.height === undefined || userFromDb.height === 0,
+    weight: userFromDb.weight === undefined || userFromDb.weight === 0,
+    physicalActivityLevel: userFromDb.physicalActivityLevel === undefined || userFromDb.physicalActivityLevel === '',
     dietaryRestrictions: userFromDb.dietaryRestrictions === undefined,
     diseases: userFromDb.diseases === undefined,
   };
@@ -63,8 +63,7 @@ export async function executeRequestUserInformationTool({
   console.log("undefinedFields", undefinedFields);
 
   if (undefinedFields.length === 0) {
-    await sendMessageToUser(user.phoneNumber, buildInstructionsMessage(user));
-    return "Ya pedí todos los datos y mandé la información de instrucciones, NO LLAMAR A MAS TOOLS";
+    return "No hay datos faltantes, NO LLAMAR A MAS TOOLS";
   }
 
   await sendMessageToUser(user.phoneNumber, buildMissingFieldsText(undefinedFields));

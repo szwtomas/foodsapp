@@ -88,7 +88,7 @@ async function handleMessage(
 - Edad
 - Nombre
 - Objetivo físico (bajar de peso, ganar peso, mantenerse, etc)
-- Género
+- Sexo
 - Altura en cm
 - Peso en kg
 - Nivel de actividad física (sedentario, ligero, moderado, activo, muy activo)
@@ -126,10 +126,11 @@ async function handleMessage(
         console.log("user is in onboarding");
         sendMessageToUser(user.phoneNumber, `🛠️ Estoy analizando los datos para verificar si podemos crear tu usuario. Dame un momento mientras realizo la validación. ⏳`);
         const { text: result, steps } = await generateText({
-            model: openai("o3-mini", { structuredOutputs: true }),
+            model: openai.responses("o3-mini"),
             prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
             system: onboardingSystemPrompt(user, lastConversationMessages),
             maxSteps: 2,
+            toolChoice: 'required',
             tools: {
                 requestUserInformation: tool({
                     description:
@@ -333,7 +334,7 @@ Sos Nutrito, un asistente nutricional mediante WhatsApp
   - Edad (age)
   - Nombre (name)
   - Objetivo (goal)
-  - Género (gender)
+  - Sexo (sex)
   - Altura (height)
   - Peso (weight)
   - Nivel de actividad física (physicalActivityLevel) 
@@ -384,7 +385,7 @@ const systemPrompt = (
       - Edad (age)
       - Nombre (name)
       - Objetivo (goal)
-      - Género (gender)
+      - Sexo (sex)
       - Altura (height)
       - Peso (weight)
       - Nivel de actividad física (physicalActivityLevel) 

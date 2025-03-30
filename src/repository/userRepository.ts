@@ -67,11 +67,11 @@ export const UserSchema = z.object({
         .optional()
     )
     .optional(),
-  sex: z.enum(["male", "female", "other"]).optional(),
+  sex: z.enum(["male", "female", "other", ""]).optional(),
   height: z.number().positive().optional(),
   weight: z.number().positive().optional(),
   physicalActivityLevel: z
-    .enum(["sedentary", "light", "moderate", "active", "veryActive"])
+    .enum(["sedentary", "light", "moderate", "active", "veryActive", ""])
     .optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
   diseases: z.array(z.string()).optional(),
@@ -90,7 +90,7 @@ export const CompleteUserSchema = UserSchema.extend({
   dietaryRestrictions: z.array(z.string()),
   diseases: z.array(z.string()),
   conversation: z.array(MessageSchema),
-  foodLogs: z.array(FoodLogSchema),
+  foodLogs: z.array(FoodLogSchema).optional(),
 });
 
 // Type definitions derived from Zod schemas
