@@ -130,6 +130,7 @@ async function handleMessage(
     },
     prompt: lastConversationMessages.map(msg => msg.content.text + "\n" + (msg.content.media?.url || "")).join("\n"),
     system: systemPrompt(user, lastConversationMessages),
+    maxSteps: 2
   });
   console.log(
     "stepsTaken: ",
