@@ -3,124 +3,137 @@ import { logger } from "../logger";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
 import {
-  type Message,
-  type User,
-  userRepository,
+    type Message,
+    type User,
+    userRepository,
 } from "../repository/userRepository";
 import { generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
 import { validateFoodLogEntry } from "../tools/validateFoodLogEntry";
-
+import { processImage } from "../tools/processImage";
 export async function receiveWebhook(
-  req: Request,
-  res: Response
+    req: Request,
+    res: Response
 ): Promise<void> {
-  try {
-    const { body } = req;
-    const payload = await twoChatMessenger.processWebhookPayload(body);
-    if ("event" in payload && payload.event === "message.read") {
-      logger.info({ payload }, "Message read event");
-      res.status(200).send({ message: "Message read event processed" });
-      return;
+    try {
+        const { body } = req;
+        const payload = await twoChatMessenger.processWebhookPayload(body);
+        if ("event" in payload && payload.event === "message.read") {
+            logger.info({ payload }, "Message read event");
+            res.status(200).send({ message: "Message read event processed" });
+            return;
+        }
+
+        const standardizedPayload = payload as StandardizedWebhookPayload;
+        const userPhoneNumber = standardizedPayload.from;
+
+        logger.info(
+            {
+                from: userPhoneNumber,
+                messageType: standardizedPayload.type,
+                messageId: standardizedPayload.messageId,
+            },
+            "Received message"
+        );
+
+        await handleMessage(standardizedPayload, userPhoneNumber);
+        res.status(200).send({ message: "Webhook processed successfully" });
+    } catch (error) {
+        logger.error(error, "Error processing webhook");
+        res
+            .status(500)
+            .send({ message: "An error occurred while processing webhook" });
     }
-
-    const standardizedPayload = payload as StandardizedWebhookPayload;
-    const userPhoneNumber = standardizedPayload.from;
-
-    logger.info(
-      {
-        from: userPhoneNumber,
-        messageType: standardizedPayload.type,
-        messageId: standardizedPayload.messageId,
-      },
-      "Received message"
-    );
-
-    await handleMessage(standardizedPayload, userPhoneNumber);
-    res.status(200).send({ message: "Webhook processed successfully" });
-  } catch (error) {
-    logger.error(error, "Error processing webhook");
-    res
-      .status(500)
-      .send({ message: "An error occurred while processing webhook" });
-  }
 }
 
 async function handleMessage(
-  payload: StandardizedWebhookPayload,
-  fromNumber: string
+    payload: StandardizedWebhookPayload,
+    fromNumber: string
 ) {
-  let user = userRepository.getUser(fromNumber);
+    let user = userRepository.getUser(fromNumber);
 
-  console.log("user is", user);
-  if (!user) {
-    user = userRepository.createUserFromNumber(fromNumber);
-  }
-  userRepository.addMessage(user.phoneNumber, {
-    content: { text: payload.content.text, media: payload.content.media },
-    sender: "user",
-  });
+    console.log("user is", user);
+    if (!user) {
+        user = userRepository.createUserFromNumber(fromNumber);
+    }
+    userRepository.addMessage(user.phoneNumber, {
+        content: { text: payload.content.text, media: payload.content.media },
+        sender: "user",
+    });
 
-  let lastConversationMessages: Message[] = [];
-  if (user?.conversation?.length) {
-    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
-    lastConversationMessages = user.conversation.filter(
-      (msg) => msg.timestamp > last5Minutes
+    let lastConversationMessages: Message[] = [];
+    if (user?.conversation?.length) {
+        const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+        lastConversationMessages = user.conversation.filter(
+            (msg) => msg.timestamp > last5Minutes
+        );
+    }
+
+    const { text: result, steps } = await generateText({
+        model: openai("o3-mini", { structuredOutputs: true }),
+        tools: {
+          requestUserInformation: tool({
+            description:
+              "Solicita información al usuario para completar su perfil.",
+            parameters: z.object({
+              user: z
+                .object({
+                  phoneNumber: z.string(),
+                })
+                .describe(
+                  "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
+                ),
+            }),
+            execute: executeRequestUserInformationTool,
+          }),
+            validateFoodLogEntry: tool({
+                description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
+                parameters: z.object({
+                    userPhone: z.string().describe("El número de teléfono del usuario"),
+                    conversationContext: z.array(z.custom<Message>())
+                }),
+                execute: async ({ userPhone, conversationContext }) => {
+                    const user = userRepository.getUser(userPhone);
+                    if (!user || !user.conversation) {
+                        return "No se encontró el usuario o no tiene conversación.";
+                    }
+
+                    // Use the last few messages as context
+                    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+                    const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
+
+                    return await validateFoodLogEntry(userPhone, recentMessages);
+                }
+            }),
+            processImage: tool({
+                description: "Procesa una imagen para identificar alimentos.",
+                parameters: z.object({
+                    userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
+                    imageUrl: z.string().describe("La URL que se encuentra en la prompt en imageUrl") // todo: change!!
+                }),
+                execute: async ({ userPhoneNumber, imageUrl }) => {
+                    const user = userRepository.getUser(userPhoneNumber);
+                    if (!user || !user.conversation) {
+                        return "No se encontró el usuario o no tiene conversación.";
+                    }
+                    return await processImage(userPhoneNumber, imageUrl);
+                }
+            }),
+        },
+        prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
+        system: systemPrompt(user, lastConversationMessages),
+    });
+    console.log(
+        "stepsTaken: ",
+        steps.flatMap((step) => step.toolCalls)
     );
-  }
-
-  const { text: result, steps } = await generateText({
-    model: openai("o3-mini", { structuredOutputs: true }),
-    tools: {
-      requestUserInformation: tool({
-        description:
-          "Solicita información al usuario para completar su perfil.",
-        parameters: z.object({
-          user: z
-            .object({
-              phoneNumber: z.string(),
-            })
-            .describe(
-              "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
-            ),
-        }),
-        execute: executeRequestUserInformationTool,
-      }),
-      validateFoodLogEntry: tool({
-        description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
-        parameters: z.object({
-          userPhone: z.string().describe("El número de teléfono del usuario"),
-          conversationContext: z.array(z.custom<Message>())
-        }),
-        execute: async ({ userPhone, conversationContext }) => {
-          const user = userRepository.getUser(userPhone);
-          if (!user || !user.conversation) {
-            return "No se encontró el usuario o no tiene conversación.";
-          }
-          
-          // Use the last few messages as context
-          const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
-          const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
-          
-          return await validateFoodLogEntry(userPhone, recentMessages);
-        }
-      })
-    },
-    prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
-    system: systemPrompt(user, lastConversationMessages),
-    maxSteps: 2
-  });
-  console.log(
-    "stepsTaken: ",
-    steps.flatMap((step) => step.toolCalls)
-  );
 }
 
 const systemPrompt = (
-  user?: User,
-  last5MinutesConversation?: Message[]
+    user?: User,
+    last5MinutesConversation?: Message[]
 ): string => `
   Sos Nutrito, un asistente nutricional mediante WhatsApp 
   especializado en:
@@ -151,6 +164,8 @@ const systemPrompt = (
       - Enfermedades (diseases) (puede ser array vacío en caso de no tener)
   - Si el usuario no tiene alguna de la información requerida, UNICAMENTE utilizá la tool de requestUserInformation hasta tener esto completo.
   - Si el usuario ya tiene la información completa, entonces identificarás que flujo seguir dependiendo del mensaje que envíe el usuario.
+  - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos.
+
 
   # Registro de comidas de un usuario registrado
   - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
@@ -177,6 +192,19 @@ const systemPrompt = (
   Esta herramienta identifica la comida enviada por el usuario y envía un mensaje para validar la descripción.
   Parámetros:
   - foodDescription: descripción de la comida
+  - userId: ID del usuario
+  
+  ## registerFoodLogEntry
+  Esta herramienta registra una entrada de comida una vez validada.
+  Parámetros:
+  - validatedFood: objeto con la información de la comida validada
+  - userId: ID del usuario
+
+  ## processImage
+  Esta herramienta procesa una imagen para identificar alimentos. Si o si debes llamar a esta herramienta cuando el usuario envíe una imagen.
+  Parámetros:
+  - imageUrl: URL de la imagen a procesar
+ión de la comida
   - userId: ID del usuario
   
   ## registerFoodLogEntry
