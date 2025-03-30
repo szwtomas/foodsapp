@@ -3,6 +3,7 @@ import { FoodLog, userRepository } from "../repository/userRepository";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { sendMessageToUser } from "./requestUserInformation";
+import { userExpectedDailyCaloriesRepository } from "../repository/userExpectedDailyCaloriesRepository";
 
 type Goal = "loseWeight" | "gainWeight" | "maintainWeight" | "eatWholeFoods" | "eatBalanced";
 
@@ -84,6 +85,7 @@ export async function generateReport(
 
     const avgMacros = calculateAverageMacros(foodLogEntries);
     const avgMicros = calculateAverageMicros(foodLogEntries);
+    const userCalories = userExpectedDailyCaloriesRepository.getEntry(userPhoneNumber);
 
     const reportContent = `Analiza los alimentos consumidos por el usuario entre ${startDate} y ${endDate} y genera un reporte amigable y personalizado. 
 
@@ -106,6 +108,8 @@ export async function generateReport(
        - Si algún macronutriente o micronutriente está desbalanceado, menciona qué alimentos pueden ayudar a equilibrarlo.  
        - Mantén un tono positivo y motivador.  
     
+
+    4. Considera los objetivos caloricos del usuario, sus necesidades caloricas diarias son: ${userCalories?.dailyCaloriesNumber ?? 2000}
     Información del usuario y su historial:  
     # Usuario: ${JSON.stringify(user)}  
     # Entradas de alimentos: ${JSON.stringify(foodLogEntries)}
