@@ -288,7 +288,7 @@ export class UserRepository {
     if (!foodLogs) return undefined;
 
     return foodLogs.filter((log) => {
-      return log.date >= startDate && log.date <= endDate;
+      return log.date >= startDate && log.date <= endDate && log.status === "validated";
     });
   }
 

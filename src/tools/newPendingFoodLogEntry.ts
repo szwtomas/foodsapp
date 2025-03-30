@@ -146,8 +146,9 @@ export async function newPendingFoodLogEntry(
 
 function buildFoodLogMessage(foodLog: FoodLog): string {
   return `Detecté que comiste: ${foodLog.description}
-  con aproximadamente ${foodLog.totalMacros.protein}g de proteinas,
-  ${foodLog.totalMacros.carbs}g de carbohidratos,
-  ${foodLog.totalMacros.fats}g de grasas,
-  `;
+  con aproximadamente \n
+    * ${foodLog.totalMacros.protein}g de proteinas,
+    * ${foodLog.totalMacros.carbs}g de carbohidratos,
+    * ${foodLog.totalMacros.fats}g de grasas.
+    \n Esto es correcto?`;
 }

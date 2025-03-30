@@ -16,6 +16,15 @@ app.use(express.json());
 app.use(api);
 app.use(webhookRouter);
 
+// let user = userRepository.createUser({
+//   name: "User",
+//   phoneNumber: "+5491168660445",
+//   age: 24,
+//   weight: 70,
+//   height: 170,
+//   goal: ["loseWeight"]
+// })
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

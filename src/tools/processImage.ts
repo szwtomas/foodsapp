@@ -1,8 +1,52 @@
 import { generateObject } from "ai";
-import { userRepository } from "../repository/userRepository";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
+import { generateText } from "ai";
+import { userRepository, FoodLog, Message } from "../repository/userRepository";
+import { v4 as uuidv4 } from "uuid";
 import { sendMessageToUser } from "./requestUserInformation";
+
+// Define the Zod schema for type checking the parsed result
+const FoodLogResponseSchema = z.object({
+  description: z.string(),
+  totalMacros: z.object({
+    protein: z.number(),
+    carbs: z.number(),
+    fats: z.number()
+  }),
+  totalMicros: z.array(z.object({
+    name: z.string(),
+    amount: z.number()
+  })),
+  foods: z.array(z.object({
+    description: z.string(),
+    macros: z.object({
+      protein: z.number(),
+      carbs: z.number(),
+      fats: z.number()
+    }),
+    micros: z.array(z.object({
+      name: z.string(),
+      amount: z.number()
+    }))
+  }))
+});
+
+// Convert Message objects to a format that can be passed to the AI model
+type MessageForAI = {
+  content: {
+    text?: string;
+    media?: {
+      url: string;
+      type: string;
+      mimeType: string;
+    };
+  };
+  timestamp: Date | string;
+  sender: "user" | "assistant";
+};
+
+
 
 export async function processImage(
     userPhoneNumber: string,
@@ -12,13 +56,77 @@ export async function processImage(
     if (!user) {
         throw new Error(`User with phone number ${userPhoneNumber} not found`);
     }
-
+    
     const description = await generateObject({
         model: openai.responses("gpt-4o"),
         schema: z.object({
             description: z.string(),
+            totalMacros: z.object({
+                protein: z.number(),
+                carbs: z.number(),
+                fats: z.number()
+            }),
+            totalMicros: z.array(z.object({
+                name: z.string(),
+                amount: z.number()
+            })),
+            foods: z.array(z.object({
+                description: z.string(),
+                macros: z.object({
+                    protein: z.number(),
+                    carbs: z.number(),
+                    fats: z.number()
+                }),
+                micros: z.array(z.object({
+                    name: z.string(),
+                    amount: z.number()
+                }))
+            }))
         }),
         messages: [
+            { 
+                role: "system", 
+                content: `Extrae del la foto del usuario una posible comida con su descripción, macro y micro nutrientes.
+                En caso de poder identificar una comida y generar una descripción de la misma, entonces analiza los nutrientes
+                y crea un objeto JSON con los datos correspondientes.
+                Si no se pudo identificar ninguna comida, responde con null.
+      
+                ES DE SUMA IMPORTANCIA que la descripción de la comida sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
+                
+                El objeto debe tener la siguiente estructura:
+                {
+                  "description": string,
+                  "totalMacros": {
+                    "protein": number,
+                    "carbs": number,
+                    "fats": number
+                  },
+                  "totalMicros": [
+                    {
+                      "name": string,
+                      "amount": number
+                    } 
+                  ],
+                  "foods": [
+                    {
+                      "description": string,
+                      "macros": {
+                        "protein": number,
+                        "carbs": number,
+                        "fats": number
+                      },
+                      "micros": [
+                        {
+                          "name": string,
+                          "amount": number
+                        }
+                      ]
+                    }
+                  ]
+                }
+                
+                Responde SOLO con el objeto JSON, sin ningún texto adicional.`
+              },
             { role: "system", content: `Definir brevemente los alimentos que se ven en la imagen. 
                 Asegurate de mencionar todos los alimentos que se encuentran en la imagen con sus cantidades estimadas, las cuales deben ser específicas.
                 Ten en cuenta que la imagen puede contener más de un alimento.
@@ -41,14 +149,45 @@ export async function processImage(
             }]
     });
 
-    if (!description.object.description || description.object.description.trim() === "null") {
-        console.log(`User ${userPhoneNumber} uploaded an image with no food identified.`);
-        await sendMessageToUser(userPhoneNumber, "No pude identificar una comida en la foto. Por favor, intenta de nuevo.")
-          return "Se respondió al usuario correctamente.";
+    // Handle the response from the AI model
+    if (!description) {
+        throw new Error("No se pudo identificar ninguna comida en la imagen.");
     }
 
-    console.log(`User ${userPhoneNumber} uploaded an image with the following description: ${description.object.description}`);
+    
+    // Parse the JSON response
+    
+    // Validate with Zod schema
+    
+    // Convert to FoodLog format
+    const foodLog: FoodLog = {
+      id: uuidv4(),
+      description: description.object.description,
+      totalMacros: {
+        protein: description.object.totalMacros.protein,
+        carbs: description.object.totalMacros.carbs,
+        fats: description.object.totalMacros.fats
+      },
+      totalMicros: description.object.totalMicros,
+      foods: description.object.foods,
+      date: new Date(),
+      status: "pending"
+    };
+    
+    userRepository.addFoodLog(userPhoneNumber, foodLog);
 
-    return `El usuario ha subido una imagen con la siguiente descripción: ${description.object.description}`;
+    await sendMessageToUser(userPhoneNumber, buildFoodLogMessage(foodLog));
+    
+    return "Se ha registrado correctamente la comida.";
 }
 
+
+
+function buildFoodLogMessage(foodLog: FoodLog): string {
+    return `Detecté que comiste: ${foodLog.description}
+    con aproximadamente \n
+    * ${foodLog.totalMacros.protein}g de proteinas,
+    * ${foodLog.totalMacros.carbs}g de carbohidratos,
+    * ${foodLog.totalMacros.fats}g de grasas.
+    \n Esto es correcto?`;
+  }

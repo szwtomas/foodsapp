@@ -70,14 +70,7 @@ async function handleMessage(
     fromNumber: string
 ) {
     let user = userRepository.getUser(fromNumber);
-    // let user = userRepository.createUser({
-    //     name: "User",
-    //     phoneNumber: fromNumber,
-    //     age: 24,
-    //     weight: 70,
-    //     height: 170,
-    //     goal: ["loseWeight"]
-    // })
+    
     console.log("user is", user);
     if (!user) {
         user = userRepository.createUserFromNumber(fromNumber);
@@ -150,20 +143,20 @@ async function handleMessage(
     const { text: result, steps } = await generateText({
         model: openai("o3-mini", { structuredOutputs: true }),
         tools: {
-            requestUserInformation: tool({
-                description:
-                    "Solicita información al usuario para completar su perfil.",
-                parameters: z.object({
-                    user: z
-                        .object({
-                            phoneNumber: z.string(),
-                        })
-                        .describe(
-                            "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
-                        ),
-                }),
-                execute: executeRequestUserInformationTool,
-            }),
+            // requestUserInformation: tool({
+            //     description:
+            //         "Solicita información al usuario para completar su perfil.",
+            //     parameters: z.object({
+            //         user: z
+            //             .object({
+            //                 phoneNumber: z.string(),
+            //             })
+            //             .describe(
+            //                 "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
+            //             ),
+            //     }),
+            //     execute: executeRequestUserInformationTool,
+            // }),
             newPendingFoodLogEntry: tool({
                 description: "Extrae descripcion de comida de los mensajes del usuario para registrar la comida en estado pendiente de validacion.",
                 parameters: z.object({
@@ -351,7 +344,7 @@ const systemPrompt = (
 
   - Si el usuario pide un reporte entre fechas especificas, entonces DEBES usar el tool generateReport.
 
-  - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos.
+  - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos. 
 
   # Registro de comidas de un usuario registrado
   - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
@@ -398,7 +391,6 @@ const systemPrompt = (
   Parámetros:
   - userPhoneNumber: user phone number.
   - imageUrl: URL de la imagen a procesar
-ión de la comida
   - userPhone: user phone number.
   
   ## foodLogEntryConfirmation
