@@ -13,40 +13,41 @@ import { openai } from "@ai-sdk/openai";
 import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
 import { validateFoodLogEntry } from "../tools/validateFoodLogEntry";
 import { processImage } from "../tools/processImage";
+import { generateReport } from "../tools/generateReport";
 export async function receiveWebhook(
     req: Request,
     res: Response
 ): Promise<void> {
-  try {
-    const { body } = req;
-    logger.info({ body }, "Received webhook");
-    res.status(200).send({ message: "Webhook processed successfully" });
-    const payload = await twoChatMessenger.processWebhookPayload(body);
-    if ("event" in payload && payload.event === "message.read") {
-      logger.info({ payload }, "Message read event");
-      res.status(200).send({ message: "Message read event processed" });
-      return;
+    try {
+        const { body } = req;
+        logger.info({ body }, "Received webhook");
+        res.status(200).send({ message: "Webhook processed successfully" });
+        const payload = await twoChatMessenger.processWebhookPayload(body);
+        if ("event" in payload && payload.event === "message.read") {
+            logger.info({ payload }, "Message read event");
+            res.status(200).send({ message: "Message read event processed" });
+            return;
+        }
+
+        const standardizedPayload = payload as StandardizedWebhookPayload;
+        const userPhoneNumber = standardizedPayload.from;
+
+        logger.info(
+            {
+                from: userPhoneNumber,
+                messageType: standardizedPayload.type,
+                messageId: standardizedPayload.messageId,
+            },
+            "Received message"
+        );
+
+        await handleMessage(standardizedPayload, userPhoneNumber);
+    } catch (error) {
+        logger.error(error, "Error processing webhook");
+        res
+            .status(500)
+            .send({ message: "An error occurred while processing webhook" });
     }
-
-    const standardizedPayload = payload as StandardizedWebhookPayload;
-    const userPhoneNumber = standardizedPayload.from;
-
-    logger.info(
-      {
-        from: userPhoneNumber,
-        messageType: standardizedPayload.type,
-        messageId: standardizedPayload.messageId,
-      },
-      "Received message"
-    );
-
-    await handleMessage(standardizedPayload, userPhoneNumber);
-  } catch (error) {
-    logger.error(error, "Error processing webhook");
-    res
-      .status(500)
-      .send({ message: "An error occurred while processing webhook" });
-  }
 }
 
 async function handleMessage(
@@ -54,7 +55,14 @@ async function handleMessage(
     fromNumber: string
 ) {
     let user = userRepository.getUser(fromNumber);
-
+    // let user = userRepository.createUser({
+    //     name: "User",
+    //     phoneNumber: fromNumber,
+    //     age: 24,
+    //     weight: 70,
+    //     height: 170,
+    //     goal: ["loseWeight"]
+    // })
     console.log("user is", user);
     if (!user) {
         user = userRepository.createUserFromNumber(fromNumber);
@@ -75,65 +83,76 @@ async function handleMessage(
     const { text: result, steps } = await generateText({
         model: openai("o3-mini", { structuredOutputs: true }),
         tools: {
-          requestUserInformation: tool({
-            description:
-              "Solicita información al usuario para completar su perfil.",
-            parameters: z.object({
-              user: z
-                .object({
-                  phoneNumber: z.string(),
-                })
-                .describe(
-                  "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
-                ),
+            requestUserInformation: tool({
+                description:
+                    "Solicita información al usuario para completar su perfil.",
+                parameters: z.object({
+                    user: z
+                        .object({
+                            phoneNumber: z.string(),
+                        })
+                        .describe(
+                            "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
+                        ),
+                }),
+                execute: executeRequestUserInformationTool,
             }),
-            execute: executeRequestUserInformationTool,
-          }),
-          validateFoodLogEntry: tool({
-            description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
-            parameters: z.object({
-              userPhone: z.string().describe("El número de teléfono del usuario"),
-              conversationContext: z.array(
-                z.object({
-                  content: z.object({
-                    text: z.string(),
-                    media: z.object({
-                      url: z.string(),
-                      type: z.string(),
-                      mimeType: z.string()
-                    })
-                  }),
-                  timestamp: z.string(), // Using string for date compatibility with JSON schema
-                  sender: z.enum(["user", "assistant"])
-                })
-              )
+            validateFoodLogEntry: tool({
+                description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
+                parameters: z.object({
+                    userPhone: z.string().describe("El número de teléfono del usuario"),
+                    conversationContext: z.array(
+                        z.object({
+                            content: z.object({
+                                text: z.string(),
+                                media: z.object({
+                                    url: z.string(),
+                                    type: z.string(),
+                                    mimeType: z.string()
+                                })
+                            }),
+                            timestamp: z.string(), // Using string for date compatibility with JSON schema
+                            sender: z.enum(["user", "assistant"])
+                        })
+                    )
+                }),
+                execute: async ({ userPhone, conversationContext }) => {
+                    // Convert the conversation context to the format expected by validateFoodLogEntry
+                    // This is already in the right format since we defined the schema above
+
+                    const user = userRepository.getUser(userPhone);
+                    if (!user || !user.conversation) {
+                        return "No se encontró el usuario o no tiene conversación.";
+                    }
+
+                    // Use the last few messages as context
+                    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+                    const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
+
+                    // Pass the messages directly since they're already in the correct format
+                    return await validateFoodLogEntry(userPhone, conversationContext);
+                }
             }),
-            execute: async ({ userPhone, conversationContext }) => {
-              // Convert the conversation context to the format expected by validateFoodLogEntry
-              // This is already in the right format since we defined the schema above
-              
-              const user = userRepository.getUser(userPhone);
-              if (!user || !user.conversation) {
-                return "No se encontró el usuario o no tiene conversación.";
-              }
-              
-              // Use the last few messages as context
-              const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
-              const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
-              
-              // Pass the messages directly since they're already in the correct format
-              return await validateFoodLogEntry(userPhone, conversationContext);
-            }
-          })
+            generateReport: tool({
+                description: "Genera un reporte nutricional para el usuario.",
+                parameters: z.object({
+                    userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
+                    startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
+                    endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
+                }),
+                execute: async ({ userPhoneNumber, startDate, endDate }) => {
+                    return await generateReport(userPhoneNumber, startDate, endDate);
+                }
+            }),
         },
         prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
         system: systemPrompt(user, lastConversationMessages),
         maxSteps: 2
-      });
-      console.log(
+    });
+    console.log(
         "stepsTaken: ",
         steps.flatMap((step) => step.toolCalls)
-      );
+    );
 }
 
 const systemPrompt = (
@@ -170,7 +189,7 @@ const systemPrompt = (
   - Si el usuario no tiene alguna de la información requerida, UNICAMENTE utilizá la tool de requestUserInformation hasta tener esto completo.
   - Si el usuario ya tiene la información completa, entonces identificarás que flujo seguir dependiendo del mensaje que envíe el usuario.
   - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos.
-
+  - Si el usuario pide un reporte entre fechas especificas, entonces DEBES usar el tool generateReport.
 
   # Registro de comidas de un usuario registrado
   - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
@@ -190,7 +209,8 @@ const systemPrompt = (
   ## generateReport
   Esta herramienta genera un reporte nutricional para el usuario.
   Parámetros:
-  - reportType: tipo de reporte ('daily', 'weekly', 'monthly')
+  - startDate: fecha de inicio del reporte
+  - endDate: fecha de fin del reporte
   - userId: ID del usuario
   
   ## validateFoodLogEntry
@@ -232,7 +252,7 @@ ión de la comida
   Acción: registerFoodLogEntry con la información validada
   
   Usuario: "Quiero ver cómo vengo en la semana"
-  Acción: generateReport con reportType="weekly"
+  Acción: generateReport con startDate=fechaInicio, endDate=fechaFin
 
   # Información actual en la base de datos del usuario:
   ${JSON.stringify(user)}
