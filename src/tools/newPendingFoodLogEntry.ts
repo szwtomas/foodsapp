@@ -92,7 +92,9 @@ export async function newPendingFoodLogEntry(
           Los micro y macronutrientes deben ser calculados en base a la descripción del alimento, y sus nombres deben estar en el idioma que el usuario utilizó en la conversación.
           Responde únicamente con el objeto JSON, sin ningún texto adicional. 
           
-          El campo descripción general debe ser lo más claro y breve posible. Ejemplos:
+            ES DE SUMA IMPORTANCIA que la descripción de el alimento sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
+
+          El campo descripción debe ser lo más claro y breve posible. Ejemplos:
           - "Ensalada de lechuga, tomate y cebolla"
           - "Sandwich de pollo con queso y lechuga"
           - "Sopa de pollo"

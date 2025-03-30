@@ -68,6 +68,70 @@ export async function pendingFoodLogEntryCorrection(
 
           ES DE SUMA IMPORTANCIA que la descripción de el alimento sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
           
+          el campo descripción debe ser lo más claro y breve posible. Ejemplos:
+          - "Ensalada de lechuga, tomate y cebolla"
+          - "Sandwich de pollo con queso y lechuga"
+          - "Sopa de pollo"
+          - "Arroz con pollo"
+          - "Pizza de pepperoni"
+          - "Tostada de jamón y queso"
+          - "Vaso de leche"
+          - "Taza de café"
+          - "Bocadillo de Tofu"
+          
+          si la descripción tiene un typo, corrige el typo inteligentemente con lo más aproximado a lo que probablemente se referia el usuario.
+
+          ejemplos de respuestas:
+          
+          {
+            "description": "Ensalada de lechuga, tomate y cebolla",
+            "totalMacros": {
+                "protein": 0.5,
+                "carbs": 10,
+                "fats": 0.2
+            },
+            "totalMicros": [
+                {
+                    "name": "Calcio",
+                    "amount": 100
+                },
+                {
+                    "name": "Fósforo",
+                    "amount": 50
+                }
+            ],
+            "foods": [
+            {
+                "description": "tomate",
+                "macros": {
+                    "protein": 0.5,
+                    "carbs": 10,
+                    "fats": 0.2
+                },
+                "micros": [
+                    {
+                        "name": "Calcio",
+                        "amount": 100
+                    }
+                ],
+            },
+            {
+                "description": "lechuga",
+                "macros": {
+                    "protein": 0.5,
+                    "carbs": 10,
+                    "fats": 0.2
+                },
+                "micros": [
+                    {
+                        "name": "Vitamina C",
+                        "amount": 200
+                    }
+                ]
+            }
+          }
+          
+
           
           Responde SOLO con el objeto JSON, sin ningún texto adicional.
           

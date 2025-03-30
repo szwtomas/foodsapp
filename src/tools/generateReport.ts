@@ -113,6 +113,8 @@ export async function generateReport(
     Información del usuario y su historial:  
     # Usuario: ${JSON.stringify(user)}  
     # Entradas de alimentos: ${JSON.stringify(foodLogEntries)}
+
+    importante: Utiliza bold e italic para destacar los datos importantes y valores numéricos
     `;
     
     
