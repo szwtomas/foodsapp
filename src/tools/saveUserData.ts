@@ -23,12 +23,11 @@ export async function saveUserData(
   await twoChatMessenger.sendMessage({
       to_number: receivedUser.phoneNumber,
       from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
-      text: `Gracias por completar tu perfil.\nTe comentamos como registrar tus comidas de la forma más sencilla!
-
-      Primero, envíame la comida que desees registrar, puedes hacerlo mediante texto, audio o imagen!
-      
-      Luego validaré la comida y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!`,
-    });
+      text: `¡Gracias por completar tu perfil! 🙂
+Te comentamos como registrar tus comidas de la forma más sencilla!
+Primero, envíame la comida que desees registrar, puedes hacerlo mediante texto, audio o imagen!
+Luego validaré la comida y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!
+¡A comer rico rico! Pero sanito 🥑`});
 
 
   return "Usuario registrado correctamente, NO LLAMAR A MAS TOOLS";
