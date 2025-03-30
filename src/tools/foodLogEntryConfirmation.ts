@@ -18,9 +18,5 @@ export async function foodLogEntryConfirmation (
   userRepository.updateFoodLog(userPhoneNumber, lastPendingFoodLogEntry.id, lastPendingFoodLogEntry);
   
   sendMessageToUser(userPhoneNumber, `Gracias por registrar tu consumo de ${lastPendingFoodLogEntry.description}`); // TODO NTH: insight about food
-
-
-  console.log("Starting insight calculation...");
-
-  return `Gracias por registrar tu consumo de ${lastPendingFoodLogEntry.description}`; // TODO NTH: insight about food
+  return `Gracias por registrar tu consumo de ${lastPendingFoodLogEntry.description} ✅  `; // TODO NTH: insight about food
 }

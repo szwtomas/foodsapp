@@ -189,7 +189,7 @@ async function handleMessage(
     }
 
     console.log("user is not in onboarding!!!");
-    if (payload.content.media) {
+    if (payload.content.media?.type === "image") {
         // sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
         const { text: result, steps } = await generateText({
             model: openai("o3-mini", { structuredOutputs: true }),
@@ -240,25 +240,10 @@ async function handleMessage(
                     description: "Extrae descripcion de alimentos de los mensajes del usuario para registrar los alimentos en estado pendiente de validacion.",
                     parameters: z.object({
                         userPhone: z.string().describe("El número de teléfono del usuario"),
-                        conversationContext: z.array(
-                            z.object({
-                                content: z.object({
-                                    text: z.string(),
-                                    media: z.object({
-                                        url: z.string(),
-                                        type: z.string(),
-                                        mimeType: z.string()
-                                    })
-                                }),
-                                timestamp: z.string(), // Using string for date compatibility with JSON schema
-                                sender: z.enum(["user", "assistant"])
-                            })
-                        )
+                       
                     }),
-                    execute: async ({ userPhone, conversationContext }, messages) => {  
-                      if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "newPendingFoodLogEntry") {
-                        return 'terminar flujo';
-                      }
+                    execute: async ({ userPhone }, messages) => {  
+                    
                         console.log(`inside newPendingFoodLogEntry for user ${userPhone}`);
                         // Convert the conversation context to the format expected by newPendingFoodLogEntry
                         // This is already in the right format since we defined the schema above
@@ -273,31 +258,28 @@ async function handleMessage(
                         const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
 
                         // Pass the messages directly since they're already in the correct format
-                        return await newPendingFoodLogEntry(userPhone, conversationContext);
+                        return await newPendingFoodLogEntry(userPhone, recentMessages);
                     }
                 }),
                 pendingFoodLogEntryCorrection: tool({
                     description: "Corrige la entrada de alimento pendiente.",
                     parameters: z.object({
                         userPhone: z.string().describe("El número de teléfono del usuario"),
-                        conversationContext: z.array(
-                            z.object({
-                                content: z.object({
-                                    text: z.string(),
-                                    media: z.object({
-                                        url: z.string(),
-                                        type: z.string(),
-                                        mimeType: z.string()
-                                    })
-                                }),
-                                timestamp: z.string(), // Using string for date compatibility with JSON schema
-                                sender: z.enum(["user", "assistant"])
-                            })
-                        )
+                        
                     }),
-                    execute: async ({ userPhone, conversationContext }) => {
+                    execute: async ({ userPhone }) => {
                         console.log(`inside pendingFoodLogEntryCorrection for user ${userPhone}`);
-                        return await pendingFoodLogEntryCorrection(userPhone, conversationContext);
+
+                        const user = userRepository.getUser(userPhone);
+                        if (!user || !user.conversation) {
+                            return "No se encontró el usuario o no tiene conversación.";
+                        }
+
+                        // Use the last few messages as context
+                        const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+                        const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
+
+                        return await pendingFoodLogEntryCorrection(userPhone, recentMessages);
                     }
                 }),
                 foodLogEntryConfirmation: tool({
@@ -306,7 +288,7 @@ async function handleMessage(
                         userPhoneNumber: z.string().describe("El número de teléfono del usuario")
                     }),
                     execute: async ({ userPhoneNumber }, messages) => {
-                        if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "foodLogEntryConfirmation") {
+                        if (messages.messages.length > 2 && messages.messages[2].role === "tool" && ['newPendingFoodLogEntry', 'pendingFoodLogEntryCorrection', 'foodLogEntryConfirmation'].includes(messages.messages[2]?.content[0]?.toolName)) {
                             return 'terminar flujo';
                         }
                         console.log(`inside foodLogEntryConfirmation for user ${userPhoneNumber}`);

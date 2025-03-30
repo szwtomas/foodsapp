@@ -54,7 +54,7 @@ export async function pendingFoodLogEntryCorrection(
   conversationContext: MessageForAI[]
 ): Promise<string> {
   try {
-    sendMessageToUser(userPhone, `🧐 Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩`);
+    sendMessageToUser(userPhone, `🧐 Estoy corrigiendo el registro del y su información nutricional. Dame un momento y te compartiré los resultados. ⏳`);
     const response = await generateObject({
       model: openai("gpt-4o"),
       messages: [
@@ -69,9 +69,13 @@ export async function pendingFoodLogEntryCorrection(
           ES DE SUMA IMPORTANCIA que la descripción de el alimento sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
           
           
-          Responde SOLO con el objeto JSON, sin ningún texto adicional.`
+          Responde SOLO con el objeto JSON, sin ningún texto adicional.
+          
+          esta es la conversacion de los ultimos 5 minutos:
+          ${conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n")}
+          `
         },
-        { role: "user", content: conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n") }
+        { role: "user", content: conversationContext[conversationContext.length - 1].content.text ?? "" }
       ],
       schema: FoodLogResponseSchema
 

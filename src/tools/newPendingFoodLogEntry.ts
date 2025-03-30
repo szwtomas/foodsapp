@@ -90,14 +90,78 @@ export async function newPendingFoodLogEntry(
           Si no se identifica ningún alimento de ninguna forma, responde con "null".
           Es importante que la descripción sea lo más clara y breve posible, adaptándose a la información proporcionada.
           Los micro y macronutrientes deben ser calculados en base a la descripción del alimento, y sus nombres deben estar en el idioma que el usuario utilizó en la conversación.
-          Responde únicamente con el objeto JSON, sin ningún texto adicional.   
-          # Mensajes del usuario:
-          ${conversationContext.map(msg => msg.content.text || "").join("\n")}`
+          Responde únicamente con el objeto JSON, sin ningún texto adicional. 
+          
+          El campo descripción general debe ser lo más claro y breve posible. Ejemplos:
+          - "Ensalada de lechuga, tomate y cebolla"
+          - "Sandwich de pollo con queso y lechuga"
+          - "Sopa de pollo"
+          - "Arroz con pollo"
+          - "Pizza de pepperoni"
+          - "Tostada de jamón y queso"
+          - "Vaso de leche"
+          - "Taza de café"
+          - "Bocadillo de Tofu"
+          
+
+          ejemplos de respuestas:
+          
+          {
+            "description": "Ensalada de lechuga, tomate y cebolla",
+            "totalMacros": {
+                "protein": 0.5,
+                "carbs": 10,
+                "fats": 0.2
+            },
+            "totalMicros": [
+                {
+                    "name": "Calcio",
+                    "amount": 100
                 },
-                { role: "user", content: conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n") }
+                {
+                    "name": "Fósforo",
+                    "amount": 50
+                }
+            ],
+            "foods": [
+            {
+                "description": "tomate",
+                "macros": {
+                    "protein": 0.5,
+                    "carbs": 10,
+                    "fats": 0.2
+                },
+                "micros": [
+                    {
+                        "name": "Calcio",
+                        "amount": 100
+                    }
+                ],
+            },
+            {
+                "description": "lechuga",
+                "macros": {
+                    "protein": 0.5,
+                    "carbs": 10,
+                    "fats": 0.2
+                },
+                "micros": [
+                    {
+                        "name": "Vitamina C",
+                        "amount": 200
+                    }
+                ]
+            }
+          }
+          
+
+           esta es la conversacion de los ultimos 5 minutos:
+          ${conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n")}
+          `
+        },
+        { role: "user", content: conversationContext[conversationContext.length - 1].content.text ?? "" }
             ]
         });
-
 
 
         // If the response is 'null', return early
