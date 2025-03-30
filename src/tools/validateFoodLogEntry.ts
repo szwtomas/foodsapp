@@ -31,9 +31,23 @@ const FoodLogResponseSchema = z.object({
   }))
 });
 
+// Convert Message objects to a format that can be passed to the AI model
+type MessageForAI = {
+  content: {
+    text?: string;
+    media?: {
+      url: string;
+      type: string;
+      mimeType: string;
+    };
+  };
+  timestamp: Date | string;
+  sender: "user" | "assistant";
+};
+
 export async function validateFoodLogEntry(
   userPhone: string,
-  conversationContext: Message[]
+  conversationContext: MessageForAI[]
 ): Promise<string> {
   try {
     // Use generateText instead of generateObject for better compatibility
@@ -46,6 +60,9 @@ export async function validateFoodLogEntry(
           En caso de poder identificar una comida y generar una descripción de la misma, entonces analiza los nutrientes
           y crea un objeto JSON con los datos correspondientes.
           Si no se pudo identificar ninguna comida, responde con null.
+
+          ES DE SUMA IMPORTANCIA que la descripción de la comida sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
+          
           El objeto debe tener la siguiente estructura:
           {
             "description": string,
@@ -80,9 +97,10 @@ export async function validateFoodLogEntry(
           
           Responde SOLO con el objeto JSON, sin ningún texto adicional.`
         },
-        { role: "user", content: conversationContext.map(msg => msg.content.text + "\n" + (msg.content.media?.url || "")).join("\n") }
+        { role: "user", content: conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n") }
       ]
     });
+
     
     // Handle the response from the AI model
     const responseText = response.text;
@@ -115,6 +133,8 @@ export async function validateFoodLogEntry(
     };
     
     userRepository.addFoodLog(userPhone, foodLog);
+
+    await sendMessageToUser(userPhone, buildFoodLogMessage(foodLog));
     
     return "Se ha registrado correctamente la comida.";
   } catch (error) {
@@ -122,4 +142,12 @@ export async function validateFoodLogEntry(
     await sendMessageToUser(userPhone, "Hubo un error al procesar tu comida. Por favor, intenta de nuevo con más detalles.");
     return "Error al procesar la entrada de comida.";
   }
+}
+
+function buildFoodLogMessage(foodLog: FoodLog): string {
+  return `Detecté que comiste: ${foodLog.description}
+  con aproximadamente ${foodLog.totalMacros.protein}g de proteinas,
+  ${foodLog.totalMacros.carbs}g de carbohidratos,
+  ${foodLog.totalMacros.fats}g de grasas,
+  `;
 }

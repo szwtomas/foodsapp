@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import api from "./routes/api";
 import webhookRouter from "./routes/webhook";
+import { userRepository } from "./repository/userRepository";
 
 dotenv.config();
 
@@ -46,3 +47,109 @@ app.listen(PORT, () => {
 //         console.error(error);
 //     }
 // })();
+
+
+userRepository.createUser({
+  phoneNumber: "+5491137050745",
+  name: "Gabriel",
+  age: 35,
+  goal: ["loseWeight"],
+  sex: "male",
+  height: 185, // cm
+  weight: 80, // kg
+  physicalActivityLevel: "moderate",
+  dietaryRestrictions: ["lactose", "gluten"],
+  diseases: ["hypertension"],
+  conversation: [
+    {
+      content: { text: "Hola, quiero registrar mi comida" },
+      timestamp: new Date(Date.now()),
+      sender: "user"
+    },
+    {
+      content: { text: "¡Hola! Claro, puedes decirme qué comiste y te ayudaré a registrarlo." },
+      timestamp: new Date(Date.now()),
+      sender: "assistant"
+    }
+  ],
+  foodLogs: [
+    // {
+    //   id: "1",
+    //   description: "Desayuno saludable",
+    //   totalMacros: {
+    //     protein: 15,
+    //     carbs: 30,
+    //     fats: 10
+    //   },
+    //   totalMicros: [
+    //     { name: "Vitamin C", amount: 45 },
+    //     { name: "Calcium", amount: 200 }
+    //   ],
+    //   foods: [
+    //     {
+    //       description: "Avena con leche de almendras",
+    //       macros: {
+    //         protein: 5,
+    //         carbs: 20,
+    //         fats: 3
+    //       },
+    //       micros: [
+    //         { name: "Iron", amount: 2 }
+    //       ]
+    //     },
+    //     {
+    //       description: "Banana",
+    //       macros: {
+    //         protein: 1,
+    //         carbs: 23,
+    //         fats: 0
+    //       },
+    //       micros: [
+    //         { name: "Potassium", amount: 400 }
+    //       ]
+    //     }
+    //   ],
+    //   date: new Date(Date.now() - 24 * 60 * 60 * 1000), // yesterday
+    //   status: "validated"
+    // },
+    // {
+    //   id: "2",
+    //   description: "Almuerzo proteico",
+    //   totalMacros: {
+    //     protein: 35,
+    //     carbs: 45,
+    //     fats: 15
+    //   },
+    //   totalMicros: [
+    //     { name: "Vitamin B12", amount: 2.4 },
+    //     { name: "Zinc", amount: 8 }
+    //   ],
+    //   foods: [
+    //     {
+    //       description: "Pechuga de pollo a la plancha",
+    //       macros: {
+    //         protein: 30,
+    //         carbs: 0,
+    //         fats: 5
+    //       },
+    //       micros: [
+    //         { name: "Vitamin B6", amount: 0.5 }
+    //       ]
+    //     },
+    //     {
+    //       description: "Ensalada de quinoa",
+    //       macros: {
+    //         protein: 5,
+    //         carbs: 45,
+    //         fats: 10
+    //       },
+    //       micros: [
+    //         { name: "Magnesium", amount: 80 }
+    //       ]
+    //     }
+    //   ],
+    //   date: new Date(), // today
+    //   status: "pending"
+    // }
+  ]
+})

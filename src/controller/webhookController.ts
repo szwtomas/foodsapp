@@ -17,35 +17,36 @@ export async function receiveWebhook(
     req: Request,
     res: Response
 ): Promise<void> {
-    try {
-        const { body } = req;
-        const payload = await twoChatMessenger.processWebhookPayload(body);
-        if ("event" in payload && payload.event === "message.read") {
-            logger.info({ payload }, "Message read event");
-            res.status(200).send({ message: "Message read event processed" });
-            return;
-        }
-
-        const standardizedPayload = payload as StandardizedWebhookPayload;
-        const userPhoneNumber = standardizedPayload.from;
-
-        logger.info(
-            {
-                from: userPhoneNumber,
-                messageType: standardizedPayload.type,
-                messageId: standardizedPayload.messageId,
-            },
-            "Received message"
-        );
-
-        await handleMessage(standardizedPayload, userPhoneNumber);
-        res.status(200).send({ message: "Webhook processed successfully" });
-    } catch (error) {
-        logger.error(error, "Error processing webhook");
-        res
-            .status(500)
-            .send({ message: "An error occurred while processing webhook" });
+  try {
+    const { body } = req;
+    logger.info({ body }, "Received webhook");
+    res.status(200).send({ message: "Webhook processed successfully" });
+    const payload = await twoChatMessenger.processWebhookPayload(body);
+    if ("event" in payload && payload.event === "message.read") {
+      logger.info({ payload }, "Message read event");
+      res.status(200).send({ message: "Message read event processed" });
+      return;
     }
+
+    const standardizedPayload = payload as StandardizedWebhookPayload;
+    const userPhoneNumber = standardizedPayload.from;
+
+    logger.info(
+      {
+        from: userPhoneNumber,
+        messageType: standardizedPayload.type,
+        messageId: standardizedPayload.messageId,
+      },
+      "Received message"
+    );
+
+    await handleMessage(standardizedPayload, userPhoneNumber);
+  } catch (error) {
+    logger.error(error, "Error processing webhook");
+    res
+      .status(500)
+      .send({ message: "An error occurred while processing webhook" });
+  }
 }
 
 async function handleMessage(
@@ -88,47 +89,51 @@ async function handleMessage(
             }),
             execute: executeRequestUserInformationTool,
           }),
-            validateFoodLogEntry: tool({
-                description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
-                parameters: z.object({
-                    userPhone: z.string().describe("El número de teléfono del usuario"),
-                    conversationContext: z.array(z.custom<Message>())
-                }),
-                execute: async ({ userPhone, conversationContext }) => {
-                    const user = userRepository.getUser(userPhone);
-                    if (!user || !user.conversation) {
-                        return "No se encontró el usuario o no tiene conversación.";
-                    }
-
-                    // Use the last few messages as context
-                    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
-                    const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
-
-                    return await validateFoodLogEntry(userPhone, recentMessages);
-                }
+          validateFoodLogEntry: tool({
+            description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
+            parameters: z.object({
+              userPhone: z.string().describe("El número de teléfono del usuario"),
+              conversationContext: z.array(
+                z.object({
+                  content: z.object({
+                    text: z.string(),
+                    media: z.object({
+                      url: z.string(),
+                      type: z.string(),
+                      mimeType: z.string()
+                    })
+                  }),
+                  timestamp: z.string(), // Using string for date compatibility with JSON schema
+                  sender: z.enum(["user", "assistant"])
+                })
+              )
             }),
-            processImage: tool({
-                description: "Procesa una imagen para identificar alimentos.",
-                parameters: z.object({
-                    userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
-                    imageUrl: z.string().describe("La URL que se encuentra en la prompt en imageUrl") // todo: change!!
-                }),
-                execute: async ({ userPhoneNumber, imageUrl }) => {
-                    const user = userRepository.getUser(userPhoneNumber);
-                    if (!user || !user.conversation) {
-                        return "No se encontró el usuario o no tiene conversación.";
-                    }
-                    return await processImage(userPhoneNumber, imageUrl);
-                }
-            }),
+            execute: async ({ userPhone, conversationContext }) => {
+              // Convert the conversation context to the format expected by validateFoodLogEntry
+              // This is already in the right format since we defined the schema above
+              
+              const user = userRepository.getUser(userPhone);
+              if (!user || !user.conversation) {
+                return "No se encontró el usuario o no tiene conversación.";
+              }
+              
+              // Use the last few messages as context
+              const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+              const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
+              
+              // Pass the messages directly since they're already in the correct format
+              return await validateFoodLogEntry(userPhone, conversationContext);
+            }
+          })
         },
         prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
         system: systemPrompt(user, lastConversationMessages),
-    });
-    console.log(
+        maxSteps: 2
+      });
+      console.log(
         "stepsTaken: ",
         steps.flatMap((step) => step.toolCalls)
-    );
+      );
 }
 
 const systemPrompt = (
