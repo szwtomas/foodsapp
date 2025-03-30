@@ -130,7 +130,7 @@ export async function newPendingFoodLogEntry(
 
         await sendMessageToUser(userPhone, buildFoodLogMessage(foodLog));
 
-        return "Se ha registrado correctamente el alimento.";
+        return "Se ha registrado correctamente el alimento. No llamar a mas tools, específicamente no llamar a foodLogEntryConfirmation.";
     } catch (error) {
         console.error('Error al validar la entrada de alimento:', error);
         await sendMessageToUser(userPhone, "Hubo un error al procesar tu alimento. Por favor, intenta de nuevo con más detalles.");
