@@ -54,6 +54,7 @@ export async function pendingFoodLogEntryCorrection(
   conversationContext: MessageForAI[]
 ): Promise<string> {
   try {
+    sendMessageToUser(userPhone, `🧐 Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩`);
     const response = await generateObject({
       model: openai("gpt-4o"),
       messages: [

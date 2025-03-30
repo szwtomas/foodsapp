@@ -112,7 +112,7 @@ export async function generateReport(
     `;
     
     
-
+    sendMessageToUser(userPhoneNumber, `📊 Estoy generando un reporte de alimentos consumidos entre las fechas ${startDate} y ${endDate}. Dame un momento y te compartiré los resultados. ⏳🍽️📅`);
     const description = await generateObject({
         model: openai("gpt-4o"),
         schema: z.object({ description: z.string() }),

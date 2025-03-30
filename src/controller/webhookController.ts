@@ -10,7 +10,7 @@ import {
 import { generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
-import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
+import { executeRequestUserInformationTool, sendMessageToUser } from "../tools/requestUserInformation";
 import { processImage } from "../tools/processImage";
 import { generateReport } from "../tools/generateReport";
 import { newPendingFoodLogEntry } from "../tools/newPendingFoodLogEntry";
@@ -124,6 +124,7 @@ async function handleMessage(
 
     if (userIsInOnboarding(user)) {
         console.log("user is in onboarding");
+        sendMessageToUser(user.phoneNumber, `🛠️ Estoy analizando los datos para verificar si podemos crear tu usuario. Dame un momento mientras realizo la validación. ⏳`);
         const { text: result, steps } = await generateText({
             model: openai("o3-mini", { structuredOutputs: true }),
             prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
@@ -175,6 +176,7 @@ async function handleMessage(
 
     console.log("user is not in onboarding!!!");
     if (payload.content.media) {
+        sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
         const { text: result, steps } = await generateText({
             model: openai("o3-mini", { structuredOutputs: true }),
             tools: {
@@ -210,6 +212,7 @@ async function handleMessage(
         );
         return result;
     } else {
+        sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
         const { text: result, steps } = await generateText({
             model: openai("o3-mini", { structuredOutputs: true }),
             tools: {
