@@ -1,7 +1,6 @@
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { generateText } from "ai";
 import { userRepository, FoodLog, Message } from "../repository/userRepository";
 import { v4 as uuidv4 } from "uuid";
 import { sendMessageToUser } from "./requestUserInformation";

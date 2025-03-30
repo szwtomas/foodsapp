@@ -2,7 +2,7 @@
 
 
 import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
 import { userRepository, FoodLog, Message } from "../repository/userRepository";
 import { v4 as uuidv4 } from "uuid";
@@ -54,8 +54,7 @@ export async function pendingFoodLogEntryCorrection(
   conversationContext: MessageForAI[]
 ): Promise<string> {
   try {
-    // Use generateText instead of generateObject for better compatibility
-    const response = await generateText({
+    const response = await generateObject({
       model: openai("gpt-4o"),
       messages: [
         { 
@@ -68,71 +67,39 @@ export async function pendingFoodLogEntryCorrection(
 
           ES DE SUMA IMPORTANCIA que la descripción de el alimento sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
           
-          El objeto debe tener la siguiente estructura:
-          {
-            "description": string,
-            "totalMacros": {
-              "protein": number,
-              "carbs": number,
-              "fats": number
-            },
-            "totalMicros": [
-              {
-                "name": string,
-                "amount": number
-              } 
-            ],
-            "foods": [
-              {
-                "description": string,
-                "macros": {
-                  "protein": number,
-                  "carbs": number,
-                  "fats": number
-                },
-                "micros": [
-                  {
-                    "name": string,
-                    "amount": number
-                  }
-                ]
-              }
-            ]
-          }
           
           Responde SOLO con el objeto JSON, sin ningún texto adicional.`
         },
         { role: "user", content: conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n") }
-      ]
+      ],
+      schema: FoodLogResponseSchema
+
     });
 
     
     // Handle the response from the AI model
-    const responseText = response.text;
     
     // If the response is 'null', return early
-    if (responseText.trim() === 'null') {
+    if (response === null) {
       await sendMessageToUser(userPhone, "No pude identificar un alimento en el mensaje. Por favor, intenta de nuevo.");
       return "Se respondió al usuario correctamente.";
     }
     
     // Parse the JSON response
-    const parsedResponse = JSON.parse(responseText);
     
     // Validate with Zod schema
-    const validatedData = FoodLogResponseSchema.parse(parsedResponse);
     
     // Convert to FoodLog format
     const foodLog: FoodLog = {
       id: uuidv4(),
-      description: validatedData.description,
+      description: response.object.description,
       totalMacros: {
-        protein: validatedData.totalMacros.protein,
-        carbs: validatedData.totalMacros.carbs,
-        fats: validatedData.totalMacros.fats
+        protein: response.object.totalMacros.protein,
+        carbs: response.object.totalMacros.carbs,
+        fats: response.object.totalMacros.fats
       },
-      totalMicros: validatedData.totalMicros,
-      foods: validatedData.foods,
+      totalMicros: response.object.totalMicros,
+      foods: response.object.foods,
       date: new Date(),
       status: "pending"
     };
