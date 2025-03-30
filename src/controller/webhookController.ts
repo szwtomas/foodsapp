@@ -176,7 +176,7 @@ async function handleMessage(
 
     console.log("user is not in onboarding!!!");
     if (payload.content.media) {
-        sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
+        // sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
         const { text: result, steps } = await generateText({
             model: openai("o3-mini", { structuredOutputs: true }),
             tools: {
@@ -212,7 +212,7 @@ async function handleMessage(
         );
         return result;
     } else {
-        sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
+        // sendMessageToUser(user.phoneNumber, "Estoy procesando tu mensaje para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥩");
         const { text: result, steps } = await generateText({
             model: openai("o3-mini", { structuredOutputs: true }),
             tools: {
