@@ -27,6 +27,7 @@ export async function saveUserData(
     return "Usuario registrado correctamente, NO LLAMAR A MAS TOOLS";
   }
 
+  console.log("faltan campos, voy a llamar a requestUserInformation");
   return "Campos faltantes, utiliza la tool requestUserInformation";
 }
 

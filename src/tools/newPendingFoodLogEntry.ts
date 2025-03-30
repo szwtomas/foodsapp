@@ -89,8 +89,10 @@ export async function newPendingFoodLogEntry(
           Luego, analiza sus macro y micronutrientes y crea un objeto JSON.
           Si no se identifica ningún alimento de ninguna forma, responde con "null".
           Es importante que la descripción sea lo más clara y breve posible, adaptándose a la información proporcionada.
-          Los micro y macronutrientes deben ser calculados en base a la descripción del alimento, y sus nombres deben estar en el idioma que el usuario utilizó.
-          Responde únicamente con el objeto JSON, sin ningún texto adicional.          `
+          Los micro y macronutrientes deben ser calculados en base a la descripción del alimento, y sus nombres deben estar en el idioma que el usuario utilizó en la conversación.
+          Responde únicamente con el objeto JSON, sin ningún texto adicional.   
+          # Mensajes del usuario:
+          ${conversationContext.map(msg => msg.content.text || "").join("\n")}`
                 },
                 { role: "user", content: conversationContext.map(msg => (msg.content.text || "") + (msg.content.media ? "\n" + msg.content.media.url : "")).join("\n") }
             ]

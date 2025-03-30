@@ -146,7 +146,7 @@ async function handleMessage(
                     execute: executeRequestUserInformationTool,
                 }),
                 saveUserInformation: tool({
-                    description: "Guarda la información del usuario si su mensaje aporta datos.",
+                    description: "Guarda la información del usuario si su mensaje aporta datos. Si hay datos faltantes llamar a la tool de requestUserInformation.",
                     parameters: z.object({
                         user: z.object({
                             phoneNumber: z.string().describe("El numero de telefono del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
@@ -298,7 +298,8 @@ async function handleMessage(
             },
             prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
             system: systemPrompt(user, lastConversationMessages),
-            maxSteps: 2
+            maxSteps: 2,
+            toolChoice: "required"
         });
         console.log(
             "stepsTaken: ",
@@ -342,8 +343,10 @@ Sos Nutrito, un asistente nutricional mediante WhatsApp
 
   SOLO EJECUTA ESTA TOOL CUANDO EL USUARIO NO TENGA TODA LA INFORMACIÓN NECESARIA.
 
-  2- saveUserInformation: Cuando el ÚLTIMO MENSAJE DEL USUARIO tiene al menos parcialmente la información necesaria, entonces debes ejecutar esta tool para guardar la información en la base de datos.
+  2- saveUserInformation: Cuando el ÚLTIMO MENSAJE DEL USUARIO tiene al menos parcialmente la información necesaria, entonces debes ejecutar esta tool para guardar la información en la base de datos. 
   Si el mensaje del usuario NO aporta datos, entonces no ejecutes esta tool, en cambio si aporta datos, entonces DEBES ejecutar esta tool para guardar la información.
+
+  Luego de llamar a saveUserData utilizar el resultado para saber si debemos terminar el flujo o llamar a la tool requestUserInformation para pedir los datos restantes.
 
   Si el usuario menciona el sexo en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other.
   Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods.
