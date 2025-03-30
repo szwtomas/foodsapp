@@ -111,7 +111,7 @@ export class UserRepository {
   }
 
   createUserFromNumber(phoneNumber: string): User {
-    let user = this.createUser({ phoneNumber });
+    const user = this.createUser({ phoneNumber });
     console.log("saved", user);
     return user;
   }
