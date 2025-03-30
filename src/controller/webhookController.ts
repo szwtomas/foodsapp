@@ -70,10 +70,40 @@ async function handleMessage(
     fromNumber: string
 ) {
     let user = userRepository.getUser(fromNumber);
-    
     console.log("user is", user);
     if (!user) {
-        user = userRepository.createUserFromNumber(fromNumber);
+      user = userRepository.createUserFromNumber(fromNumber);
+      userRepository.addMessage(user.phoneNumber, {
+        content: { text: payload.content.text, media: payload.content.media },
+        sender: "user",
+      });
+
+      const introMessage = `Hola! Soy Nutrito, tu asistente nutricional de Foodsapp! 😄 Podrías contarme un poco de vos?
+Para poder ayudarte lo mejor posible voy a necesitar algunos datos, me los podés contar por texto o audio, como te sea más cómodo.Por favor, contame la siguiente información:
+- Edad
+- Nombre
+- Objetivo físico (bajar de peso, ganar peso, mantenerse, etc)
+- Género
+- Altura en cm
+- Peso en kg
+- Nivel de actividad física (sedentario, ligero, moderado, activo, muy activo)
+- Restricciones alimentarias, mencionando si tenés o no
+- Enfermedades, o avisando que no tenés ninguna si es el caso
+
+Gracias y a trabajar juntos! 🍓`;
+
+        userRepository.addMessage(user.phoneNumber, {
+          content: { text: introMessage },
+          sender: "assistant",
+        });
+
+        await twoChatMessenger.sendMessage({
+          to_number: fromNumber,
+          from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
+          text: introMessage
+        });
+
+        return;
     }
     userRepository.addMessage(user.phoneNumber, {
         content: { text: payload.content.text, media: payload.content.media },
