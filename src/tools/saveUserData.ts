@@ -16,15 +16,18 @@ export async function saveUserData(
 
     console.log(`actualice el user, ahora voy a mandar a ${receivedUser.phoneNumber} el mensaje de bienvenida`);
 
-    await sendAssistantMessageAndAddToConversation(receivedUser.phoneNumber, `¡Gracias por completar tu perfil! 🙂
-    Te comentamos como registrar tus alimentos de la forma más sencilla!
-    Primero, envíame el alimento que desees registrar, puedes hacerlo mediante texto, audio o imagen!
-    Luego validaré el alimento y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!
-    ¡A comer rico rico! Pero sanito 🥑`);
+    await sendAssistantMessageAndAddToConversation(receivedUser.phoneNumber, 
+      `¡Gracias por completar tu perfil 🙂!
 
-  
-  
-    return "Usuario registrado correctamente, NO LLAMAR A MAS TOOLS";
+    Te comentamos *cómo registrar tus alimentos* de la forma más sencilla!
+
+    Primero, envíame el alimento que desees registrar, puedes hacerlo mediante texto, audio o imagen!
+
+    Luego validaré el alimento y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!
+    
+    ¡A comer rico! Pero sanito 🥑`);
+
+    return "Usuario registrado correctamente, NO LLAMAR A MAS TOOLS, específicamente NO llamar a requestUserInformation.";
   }
 
   console.log("faltan campos, voy a llamar a requestUserInformation");
