@@ -128,7 +128,7 @@ async function handleMessage(
         }
       })
     },
-    prompt: lastConversationMessages.map(msg => msg.content.text + "\n" + (msg.content.media?.url || "")).join("\n"),
+    prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
     system: systemPrompt(user, lastConversationMessages),
   });
   console.log(
