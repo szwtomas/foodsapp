@@ -103,6 +103,7 @@ export async function newPendingFoodLogEntry(
           - "Taza de café"
           - "Bocadillo de Tofu"
           
+          si la descripción tiene un typo, corrige el typo inteligentemente con lo más aproximado a lo que probablemente se referia el usuario.
 
           ejemplos de respuestas:
           
