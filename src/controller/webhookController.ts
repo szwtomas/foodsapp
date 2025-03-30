@@ -86,7 +86,7 @@ async function handleMessage(
     );
   }
 
-  const { text: result, steps: steps } = await generateText({
+  const { text: result, steps } = await generateText({
     model: openai("o3-mini", { structuredOutputs: true }),
     tools: {
       requestUserInformation: tool({

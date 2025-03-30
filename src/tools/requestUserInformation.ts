@@ -17,9 +17,23 @@ function buildInstructionsMessage(user: User): string {
 }
 
 function buildMissingFieldsText(missingFields: string[]): string {
-  return `Para completar tu registro, necesito la siguiente información: ${missingFields.join(
+  const fieldTranslations: { [key: string]: string } = {
+    age: "edad",
+    name: "nombre",
+    goal: "objetivo",
+    sex: "sexo",
+    height: "altura",
+    weight: "peso",
+    physicalActivityLevel: "nivel de actividad física",
+    dietaryRestrictions: "restricciones alimentarias",
+    diseases: "enfermedades"
+  };
+
+  const translatedFields = missingFields.map(field => fieldTranslations[field]);
+  
+  return `¡Hola! Para poder ayudarte mejor, necesito algunos datos más: ${translatedFields.join(
     ", "
-  )}. Podrías por favor darmela?`;
+  )}. ¿Me los podrías proporcionar? 😊`;
 }
 
 export async function executeRequestUserInformationTool({
