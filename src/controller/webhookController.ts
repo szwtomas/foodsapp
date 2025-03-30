@@ -14,6 +14,8 @@ import { executeRequestUserInformationTool } from "../tools/requestUserInformati
 import { newPendingFoodLogEntry } from "../tools/newPendingFoodLogEntry";
 import { processImage } from "../tools/processImage";
 import { generateReport } from "../tools/generateReport";
+import { foodLogEntryConfirmation } from "../tools/foodLogEntryConfirmation";
+import { pendingFoodLogEntryCorrection } from "../tools/pendingFoodLogEntryCorrection";
 export async function receiveWebhook(
     req: Request,
     res: Response
@@ -98,7 +100,7 @@ async function handleMessage(
                 execute: executeRequestUserInformationTool,
             }),
             newPendingFoodLogEntry: tool({
-                description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
+                description: "Extrae descripcion de comida de los mensajes del usuario para registrar la comida en estado pendiente de validacion.",
                 parameters: z.object({
                     userPhone: z.string().describe("El número de teléfono del usuario"),
                     conversationContext: z.array(
@@ -133,6 +135,49 @@ async function handleMessage(
                     return await newPendingFoodLogEntry(userPhone, conversationContext);
                 }
             }),
+            pendingFoodLogEntryCorrection: tool({
+                description: "Corrige la entrada de comida pendiente.",
+                parameters: z.object({
+                    userPhone: z.string().describe("El número de teléfono del usuario"),
+                    conversationContext: z.array(
+                        z.object({
+                            content: z.object({
+                                text: z.string(),
+                                media: z.object({
+                                    url: z.string(),
+                                    type: z.string(),
+                                    mimeType: z.string()
+                                })
+                            }),
+                            timestamp: z.string(), // Using string for date compatibility with JSON schema
+                            sender: z.enum(["user", "assistant"])
+                        })
+                    )
+                }),
+                execute: async ({ userPhone, conversationContext }) => {
+                    return await pendingFoodLogEntryCorrection(userPhone, conversationContext);
+                }
+            }),
+            foodLogEntryConfirmation: tool({
+                description: "Registra la validación de la última entrada de comida pendiente.",
+                parameters: z.object({
+                    userPhoneNumber: z.string().describe("El número de teléfono del usuario")
+                }),
+                execute: async ({ userPhoneNumber }) => {
+                    return await foodLogEntryConfirmation(userPhoneNumber);
+                }
+            }),
+            processImage: tool({
+                description: "Procesa una imagen para identificar alimentos.",
+                parameters: z.object({
+                    userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
+                    imageUrl: z.string().describe("URL de la imagen a procesar")
+                }),
+                execute: async ({ userPhoneNumber, imageUrl }) => {
+                    return await processImage(userPhoneNumber, imageUrl);
+                }
+            }),
+
             generateReport: tool({
                 description: "Genera un reporte nutricional para el usuario.",
                 parameters: z.object({
@@ -188,15 +233,18 @@ const systemPrompt = (
       - Enfermedades (diseases) (puede ser array vacío en caso de no tener)
   - Si el usuario no tiene alguna de la información requerida, UNICAMENTE utilizá la tool de requestUserInformation hasta tener esto completo.
   - Si el usuario ya tiene la información completa, entonces identificarás que flujo seguir dependiendo del mensaje que envíe el usuario.
-  - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos.
+
   - Si el usuario pide un reporte entre fechas especificas, entonces DEBES usar el tool generateReport.
+
+  - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos.
 
   # Registro de comidas de un usuario registrado
   - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
   - Al recibir un mensaje lo analizarás y crearás un resumen con la descripción de la comida que validarás con el usuario para verificar su correctitud.
   - Si no podes identificar una comida en el mensaje, respondé amigablemente pidiendo más detalles.
-  - Para registrar una comida, primero utilizá la tool newPendingFoodLogEntry para identificar la comida y sus valores nutricionales.
-  - Una vez que el usuario valide la información, utilizá la tool foodLogEntryConfirmation para registrar la comida.
+  - Cuando el usuario manda un mensaje sobre comida, se utilizará la tool newPendingFoodLogEntry para generar una descripcion de la comida y sus valores nutricionales, guarando la informacion con estado pendiente de validacion.
+  - Si el usuario confirma la descripcion de la comida, se utilizará la tool foodLogEntryConfirmation para validar la entrada de comida.
+  - En caso de que el usuario niegue la descripcion de la comida, se utilizará la tool pendingFoodLogEntryCorrection para corregir la entrada de comida pendiente.
   
   # Herramientas disponibles
   Tenés acceso a las siguientes herramientas:
@@ -211,45 +259,53 @@ const systemPrompt = (
   Parámetros:
   - startDate: fecha de inicio del reporte
   - endDate: fecha de fin del reporte
-  - userId: ID del usuario
+  - userPhone: user phone number.
   
   ## newPendingFoodLogEntry
-  Esta herramienta identifica la comida enviada por el usuario y envía un mensaje para validar la descripción.
+  Esta herramienta identifica la comida enviada por el usuario, generando una descripcion de la misma. Envía un mensaje al usuario para validar la descripción.
   Parámetros:
-  - foodDescription: descripción de la comida
-  - userId: ID del usuario
+  - conversationContext: contexto reciente de la conversación.
+  - userPhone: user phone number.
   
   ## foodLogEntryConfirmation
   Esta herramienta registra una entrada de comida una vez validada.
   Parámetros:
-  - validatedFood: objeto con la información de la comida validada
-  - userId: ID del usuario
+  - userPhone: user phone number.
+
+  ## pendingFoodLogEntryCorrection
+  Esta herramienta corrige la ultima entrada de comida pendiente.
+  Parámetros:
+  - userPhone: user phone number.
+  - conversationContext: contexto reciente de la conversación
 
   ## processImage
   Esta herramienta procesa una imagen para identificar alimentos. Si o si debes llamar a esta herramienta cuando el usuario envíe una imagen.
   Parámetros:
+  - userPhoneNumber: user phone number.
   - imageUrl: URL de la imagen a procesar
 ión de la comida
-  - userId: ID del usuario
+  - userPhone: user phone number.
   
   ## foodLogEntryConfirmation
-  Esta herramienta registra una entrada de comida una vez validada.
+  Esta herramienta registra la validacion de la ultima entrada de comida pendiente a ser validada.
   Parámetros:
-  - validatedFood: objeto con la información de la comida validada
-  - userId: ID del usuario
+  - userPhone: user phone number.
   
   # Usos de las herramientas
-  - Si el usuario está registrando comida: primero utiliza newPendingFoodLogEntry, luego espera confirmación, y finalmente foodLogEntryConfirmation.
+  - Si el usuario está registrando comida: primero utiliza newPendingFoodLogEntry. Si el usuario confirma la descripcion, se utilizara foodLogEntryConfirmation. Si el usuario niega la descripcion, se debera utilizar pendingFoodLogEntryCorrection.
   - Si el usuario pide un reporte: utiliza generateReport.
   - Si falta información del usuario: utiliza requestUserInformation.
   
   # Ejemplos
   
   Usuario: "Hola, comí una ensalada césar"
-  Acción: newPendingFoodLogEntry con foodDescription="ensalada césar"
-  
-  Usuario: "Si, es correcto"
-  Acción: foodLogEntryConfirmation con la información validada
+  Acción: newPendingFoodLogEntry con los mensajes de la conversación. Se enviara un mensaje al usuario con la descripción de la comida para validar.
+    Caso confirmacion: 
+      Usuario: "Si, es correcto"
+      Acción: foodLogEntryConfirmation
+    Caso correccion:
+      Usuario: "No! Comi una papas"
+      Acción: pendingFoodLogEntryCorrection con los ultimos mensajes de la conversación
   
   Usuario: "Quiero ver cómo vengo en la semana"
   Acción: generateReport con startDate=fechaInicio, endDate=fechaFin
