@@ -32,9 +32,20 @@ function buildMissingFieldsText(missingFields: string[]): string {
 
   const translatedFields = missingFields.map(field => fieldTranslations[field]);
   
-  return `¡Hola! Para poder ayudarte mejor, necesito algunos datos más: ${translatedFields.join(
-    ", "
-  )}. ¿Me los podrías proporcionar? 😊`;
+  return `Gracias por responder!
+Para poder ayudarte mejor, necesito algunos datos más! Recordá que lo que necesito es:
+- Edad
+- Nombre
+- Objetivo físico (bajar de peso, ganar peso, mantenerse, etc)
+- Género
+- Altura en cm
+- Peso en kg
+- Nivel de actividad física (sedentario, ligero, moderado, activo, muy activo)
+- Restricciones alimentarias, mencionando si tenés o no
+- Enfermedades, o avisando que no tenés ninguna si es el caso
+
+¡Tienen que estar todos!
+¿Me los podrías proporcionar? 😊`;
 }
 
 export async function executeRequestUserInformationTool({
