@@ -107,12 +107,13 @@ async function handleMessage(
         });
 
         return;
-    }
-    userRepository.addMessage(user.phoneNumber, {
+    } else {
+      userRepository.addMessage(user.phoneNumber, {
         content: { text: payload.content.text, media: payload.content.media },
         sender: "user",
-    });
-
+      });
+    }
+    
     let lastConversationMessages: Message[] = [];
     if (user?.conversation?.length) {
         const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
@@ -131,7 +132,7 @@ async function handleMessage(
             tools: {
                 requestUserInformation: tool({
                     description:
-                        "Solicita información al usuario para completar su perfil si su mensaje no aporta datos.",
+                        "Solicita información al usuario para completar su perfil en caso de que no tenga toda la información necesaria.",
                     parameters: z.object({
                         user: z
                             .object({
@@ -147,16 +148,16 @@ async function handleMessage(
                     description: "Guarda la información del usuario si su mensaje aporta datos.",
                     parameters: z.object({
                         user: z.object({
-                            phoneNumber: z.string().describe("El numero de telefono del usuario, provisto en el ultimo mensaje del usuario"),
-                            age: z.number().describe("La edad del usuario, provista en el ultimo mensaje del usuario"),
-                            name: z.string().describe("El nombre del usuario, provisto en el ultimo mensaje del usuario"),
-                            goal: z.array(z.string()).describe("El objetivo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods."),
-                            sex: z.string().describe("El sexo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario lo menciona en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other"),
-                            height: z.number().describe("La altura del usuario, provista en el ultimo mensaje del usuario"),
-                            weight: z.number().describe("El peso del usuario, provisto en el ultimo mensaje del usuario"),
-                            physicalActivityLevel: z.string().describe("El nivel de actividad física del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate."),
-                            diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario"),
-                            dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario"),
+                            phoneNumber: z.string().describe("El numero de telefono del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
+                            age: z.number().describe("La edad del usuario, provista en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
+                            name: z.string().describe("El nombre del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
+                            goal: z.array(z.string()).describe("El objetivo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío. Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods."),
+                            sex: z.string().describe("El sexo del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío. Si el usuario lo menciona en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other"),
+                            height: z.number().describe("La altura del usuario, provista en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
+                            weight: z.number().describe("El peso del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
+                            physicalActivityLevel: z.string().describe("El nivel de actividad física del usuario, provisto en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío. Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate."),
+                            diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
+                            dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
                         })
                     }),
                     execute: saveUserData
@@ -338,13 +339,15 @@ Sos Nutrito, un asistente nutricional mediante WhatsApp
 
   SOLO EJECUTA ESTA TOOL CUANDO EL USUARIO NO TENGA TODA LA INFORMACIÓN NECESARIA.
 
-  2- saveUserInformation: Cuando el ÚLTIMO MENSAJE DEL USUARIO tiene información necesaria, entonces debes ejecutar esta tool para guardar la información en la base de datos.
+  2- saveUserInformation: Cuando el ÚLTIMO MENSAJE DEL USUARIO tiene al menos parcialmente la información necesaria, entonces debes ejecutar esta tool para guardar la información en la base de datos.
   Si el mensaje del usuario NO aporta datos, entonces no ejecutes esta tool, en cambio si aporta datos, entonces DEBES ejecutar esta tool para guardar la información.
 
   Si el usuario menciona el sexo en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other.
   Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods.
   Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate.
   # El numero de telefono del usuario es: ${user?.phoneNumber}
+
+  IMPORTANTE: Si el usuario provee datos parciales, debes ejecutar saveUserInformation y luego requestUserInformation para pedir la información que falta.
 
   # Últimos mensajes en la conversación:
   ${JSON.stringify(last5MinutesConversation)}

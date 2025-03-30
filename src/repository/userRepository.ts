@@ -48,6 +48,8 @@ const MessageSchema = z.object({
   sender: z.enum(["user", "assistant"]),
 });
 
+
+
 export const UserSchema = z.object({
   age: z.number().int().positive().optional(),
   phoneNumber: z.string().min(5), // ID
@@ -75,6 +77,20 @@ export const UserSchema = z.object({
   diseases: z.array(z.string()).optional(),
   conversation: z.array(MessageSchema).optional(),
   foodLogs: z.array(FoodLogSchema).optional(),
+});
+
+export const CompleteUserSchema = UserSchema.extend({
+  name: z.string().min(1),
+  age: z.number().int().positive(),
+  sex: z.enum(["male", "female", "other"]),
+  height: z.number().positive(),
+  weight: z.number().positive(),
+  physicalActivityLevel: z.enum(["sedentary", "light", "moderate", "active", "veryActive"]),
+  goal: z.array(z.string()),
+  dietaryRestrictions: z.array(z.string()),
+  diseases: z.array(z.string()),
+  conversation: z.array(MessageSchema),
+  foodLogs: z.array(FoodLogSchema),
 });
 
 // Type definitions derived from Zod schemas
@@ -136,10 +152,22 @@ export class UserRepository {
     if (!user) return undefined;
 
     try {
+      // Filter out empty string values and zero number values from updates
+      const filteredUpdates = Object.entries(updates).reduce<Partial<Omit<User, "phoneNumber">>>((acc, [key, value]) => {
+        // Skip empty strings and zero numbers
+        if (
+          (typeof value !== 'string' || value.trim() !== '') && 
+          (typeof value !== 'number' || value !== 0)
+        ) {
+          (acc as any)[key] = value;
+        }
+        return acc;
+      }, {});
+
       // Validate the updates
       const validatedUpdates = UserSchema.partial()
         .omit({ phoneNumber: true })
-        .parse(updates);
+        .parse(filteredUpdates);
 
       const updatedUser: User = {
         ...user,

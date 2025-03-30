@@ -1,16 +1,9 @@
+import { sendAssistantMessageAndAddToConversation } from "../helper/utility";
 import { userRepository, type User } from "../repository/userRepository";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 
 export async function sendMessageToUser(userPhone: string, message: string) {
-  console.log(`About to send message to user ${userPhone} content ${message}`);
-  await twoChatMessenger.sendMessage({
-    to_number: userPhone,
-    from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
-    text: message,
-  });
-  console.log(
-    `Sent message ${message} to ${userPhone} from ${process.env.TWO_CHAT_PHONE_NUMBER}`
-  );
+  await sendAssistantMessageAndAddToConversation(userPhone, message);
 }
 
 function buildInstructionsMessage(user: User): string {
@@ -33,16 +26,8 @@ function buildMissingFieldsText(missingFields: string[]): string {
   const translatedFields = missingFields.map(field => fieldTranslations[field]);
   
   return `Gracias por responder!
-Para poder ayudarte mejor, necesito algunos datos más! Recordá que lo que necesito es:
-- Edad
-- Nombre
-- Objetivo físico (bajar de peso, ganar peso, mantenerse, etc)
-- Género
-- Altura en cm
-- Peso en kg
-- Nivel de actividad física (sedentario, ligero, moderado, activo, muy activo)
-- Restricciones alimentarias, mencionando si tenés o no
-- Enfermedades, o avisando que no tenés ninguna si es el caso
+Para poder ayudarte mejor, *necesito algunos datos más!* Me faltan los siguientes datos:
+${translatedFields.map(field => `• ${field}`).join('\n')}
 
 ¡Tienen que estar todos!
 ¿Me los podrías proporcionar? 😊`;
