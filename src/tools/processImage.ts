@@ -41,7 +41,7 @@ export async function processImage(
             }]
     });
 
-    if (!description.object.description || description.object.description.includes("null")) {
+    if (!description.object.description || description.object.description.trim() === "null") {
         console.log(`User ${userPhoneNumber} uploaded an image with no food identified.`);
         await sendMessageToUser(userPhoneNumber, "No pude identificar una comida en la foto. Por favor, intenta de nuevo.")
           return "Se respondió al usuario correctamente.";

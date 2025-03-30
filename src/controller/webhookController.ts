@@ -11,7 +11,7 @@ import { generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
-import { validateFoodLogEntry } from "../tools/validateFoodLogEntry";
+import { newPendingFoodLogEntry } from "../tools/newPendingFoodLogEntry";
 import { processImage } from "../tools/processImage";
 import { generateReport } from "../tools/generateReport";
 export async function receiveWebhook(
@@ -97,7 +97,7 @@ async function handleMessage(
                 }),
                 execute: executeRequestUserInformationTool,
             }),
-            validateFoodLogEntry: tool({
+            newPendingFoodLogEntry: tool({
                 description: "Analiza los mensajes del usuario para identificar y registrar una comida.",
                 parameters: z.object({
                     userPhone: z.string().describe("El número de teléfono del usuario"),
@@ -117,7 +117,7 @@ async function handleMessage(
                     )
                 }),
                 execute: async ({ userPhone, conversationContext }) => {
-                    // Convert the conversation context to the format expected by validateFoodLogEntry
+                    // Convert the conversation context to the format expected by newPendingFoodLogEntry
                     // This is already in the right format since we defined the schema above
 
                     const user = userRepository.getUser(userPhone);
@@ -130,7 +130,7 @@ async function handleMessage(
                     const recentMessages = user.conversation.filter(msg => msg.timestamp > last5Minutes);
 
                     // Pass the messages directly since they're already in the correct format
-                    return await validateFoodLogEntry(userPhone, conversationContext);
+                    return await newPendingFoodLogEntry(userPhone, conversationContext);
                 }
             }),
             generateReport: tool({
@@ -195,8 +195,8 @@ const systemPrompt = (
   - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
   - Al recibir un mensaje lo analizarás y crearás un resumen con la descripción de la comida que validarás con el usuario para verificar su correctitud.
   - Si no podes identificar una comida en el mensaje, respondé amigablemente pidiendo más detalles.
-  - Para registrar una comida, primero utilizá la tool validateFoodLogEntry para identificar la comida y sus valores nutricionales.
-  - Una vez que el usuario valide la información, utilizá la tool registerFoodLogEntry para registrar la comida.
+  - Para registrar una comida, primero utilizá la tool newPendingFoodLogEntry para identificar la comida y sus valores nutricionales.
+  - Una vez que el usuario valide la información, utilizá la tool foodLogEntryConfirmation para registrar la comida.
   
   # Herramientas disponibles
   Tenés acceso a las siguientes herramientas:
@@ -213,13 +213,13 @@ const systemPrompt = (
   - endDate: fecha de fin del reporte
   - userId: ID del usuario
   
-  ## validateFoodLogEntry
+  ## newPendingFoodLogEntry
   Esta herramienta identifica la comida enviada por el usuario y envía un mensaje para validar la descripción.
   Parámetros:
   - foodDescription: descripción de la comida
   - userId: ID del usuario
   
-  ## registerFoodLogEntry
+  ## foodLogEntryConfirmation
   Esta herramienta registra una entrada de comida una vez validada.
   Parámetros:
   - validatedFood: objeto con la información de la comida validada
@@ -232,24 +232,24 @@ const systemPrompt = (
 ión de la comida
   - userId: ID del usuario
   
-  ## registerFoodLogEntry
+  ## foodLogEntryConfirmation
   Esta herramienta registra una entrada de comida una vez validada.
   Parámetros:
   - validatedFood: objeto con la información de la comida validada
   - userId: ID del usuario
   
   # Usos de las herramientas
-  - Si el usuario está registrando comida: primero utiliza validateFoodLogEntry, luego espera confirmación, y finalmente registerFoodLogEntry.
+  - Si el usuario está registrando comida: primero utiliza newPendingFoodLogEntry, luego espera confirmación, y finalmente foodLogEntryConfirmation.
   - Si el usuario pide un reporte: utiliza generateReport.
   - Si falta información del usuario: utiliza requestUserInformation.
   
   # Ejemplos
   
   Usuario: "Hola, comí una ensalada césar"
-  Acción: validateFoodLogEntry con foodDescription="ensalada césar"
+  Acción: newPendingFoodLogEntry con foodDescription="ensalada césar"
   
   Usuario: "Si, es correcto"
-  Acción: registerFoodLogEntry con la información validada
+  Acción: foodLogEntryConfirmation con la información validada
   
   Usuario: "Quiero ver cómo vengo en la semana"
   Acción: generateReport con startDate=fechaInicio, endDate=fechaFin

@@ -45,7 +45,7 @@ type MessageForAI = {
   sender: "user" | "assistant";
 };
 
-export async function validateFoodLogEntry(
+export async function newPendingFoodLogEntry(
   userPhone: string,
   conversationContext: MessageForAI[]
 ): Promise<string> {

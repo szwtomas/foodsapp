@@ -1,6 +1,6 @@
 import { userRepository } from "../repository/userRepository";
 
-export async function registerFoodLogEntry(
+export async function foodLogEntryConfirmation (
   userPhoneNumber: string
 ): Promise<string> {
   const user = userRepository.getUser(userPhoneNumber);
