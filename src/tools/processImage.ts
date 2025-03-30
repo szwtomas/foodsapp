@@ -58,6 +58,7 @@ export async function processImage(
         throw new Error(`User with phone number ${userPhoneNumber} not found`);
     }
     
+    sendMessageToUser(userPhoneNumber, `🔍 Estoy procesando tu imagen para analizar los alimentos y su información nutricional. Dame un momento y te compartiré los resultados. ⏳🥦🍗`);
     const description = await generateObject({
         model: openai.responses("gpt-4o"),
         schema: z.object({
