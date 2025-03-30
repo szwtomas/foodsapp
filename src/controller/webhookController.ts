@@ -384,7 +384,7 @@ const systemPrompt = (
   - Si el usuario no tiene alguna de la información requerida, UNICAMENTE utilizá la tool de requestUserInformation hasta tener esto completo.
   - Si el usuario ya tiene la información completa, entonces identificarás que flujo seguir dependiendo del mensaje que envíe el usuario.
 
-  - Si el usuario pide un reporte entre fechas especificas, entonces DEBES usar el tool generateReport.
+  - Si el usuario pide un reporte o analisis entre fechas especificas, entonces DEBES usar el tool generateReport.
 
   - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos. 
 

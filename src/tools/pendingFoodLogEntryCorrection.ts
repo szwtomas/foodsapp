@@ -7,6 +7,7 @@ import { z } from "zod";
 import { userRepository, FoodLog, Message } from "../repository/userRepository";
 import { v4 as uuidv4 } from "uuid";
 import { sendMessageToUser } from "./requestUserInformation";
+import { buildFoodLogMessage } from "../services/utils";
 
 // Define the Zod schema for type checking the parsed result
 const FoodLogResponseSchema = z.object({
@@ -55,7 +56,7 @@ export async function pendingFoodLogEntryCorrection(
   try {
     // Use generateText instead of generateObject for better compatibility
     const response = await generateText({
-      model: openai("o3-mini"),
+      model: openai("gpt-4o"),
       messages: [
         { 
           role: "system", 
@@ -148,11 +149,4 @@ export async function pendingFoodLogEntryCorrection(
   }
 }
 
-function buildFoodLogMessage(foodLog: FoodLog): string {
-  return `Detecté que comiste: ${foodLog.description}
-  con aproximadamente \n
-    * ${foodLog.totalMacros.protein}g de proteinas,
-    * ${foodLog.totalMacros.carbs}g de carbohidratos,
-    * ${foodLog.totalMacros.fats}g de grasas.
-    \n Esto es correcto?`;
-}
+
