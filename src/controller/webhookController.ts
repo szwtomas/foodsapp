@@ -318,7 +318,7 @@ async function handleMessage(
                     parameters: z.object({
                         userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
                         startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
-                        endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
+                        endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD', si habla de hoy, elije mañana como fecha. Por ejemplo, si un 2025-03-27 se manda un quiero un reporte de lo que comi hoy, esto debe ser 31-03-2025"),
                     }),
                     execute: async ({ userPhoneNumber, startDate, endDate }, messages) => {
                         if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "generateReport") {
@@ -448,8 +448,8 @@ const systemPrompt = (
   ## generateReport
   Esta herramienta genera un reporte nutricional para el usuario.
   Parámetros:
-  - startDate: fecha de inicio del reporte
-  - endDate: fecha de fin del reporte
+  - startDate: fecha de inicio del reporte. Si el usuario menciona hoy, elije mañana como fecha.
+  - endDate: fecha de fin del reporte. Si el usuario menciona hoy, elije mañana a las 00:00 como fecha.
   - userPhone: user phone number.
   
   ## newPendingFoodLogEntry
