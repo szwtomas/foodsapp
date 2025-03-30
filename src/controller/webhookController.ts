@@ -152,8 +152,8 @@ Gracias y a trabajar juntos! 🍓`;
                   height: z.number().describe("La altura del usuario, provista en el ultimo mensaje del usuario"),
                   weight: z.number().describe("El peso del usuario, provisto en el ultimo mensaje del usuario"),
                   physicalActivityLevel: z.string().describe("El nivel de actividad física del usuario, provisto en el ultimo mensaje del usuario. Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate."),
-                  diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario"),
-                  dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario"),
+                  diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario. Si no especifica ninguna, elije array vacío."),
+                  dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario. Si no especifica ninguna, elije array vacío."),
                 })
               }),
               execute: saveUserData
@@ -329,6 +329,11 @@ Sos Nutrito, un asistente nutricional mediante WhatsApp
   Si el usuario menciona el sexo en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other.
   Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods.
   Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate.
+  Si el usuario no menciona ninguna enfermedad, devuelve un array vacío
+  Si el usuario no menciona ninguna restricción alimentaria, devuelve un array vacío
+  Si el usuario no menciona ninguna actividad física, elije light
+  Si el usuario no menciona ninguna edad, elije 25 años
+  Si el usuario no menciona peso, elije 75kg
   # El numero de telefono del usuario es: ${user?.phoneNumber}
 
   # Últimos mensajes en la conversación:
