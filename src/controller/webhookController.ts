@@ -48,15 +48,6 @@ export async function receiveWebhook(
     );
 
     await handleMessage(standardizedPayload, userPhoneNumber);
-
-    // Respond with "hola" to any incoming message
-
-    // await twoChatMessenger.sendMessage({
-    //   to_number: userPhoneNumber,
-    //   from_number: fromNumber,
-    //   text: "hola",
-    // });
-
     res.status(200).send({ message: "Webhook processed successfully" });
   } catch (error) {
     logger.error(error, "Error processing webhook");
@@ -114,7 +105,6 @@ async function handleMessage(
           conversationContext: z.array(z.custom<Message>())
         }),
         execute: async ({ userPhone, conversationContext }) => {
-          // Get the conversation context from the repository
           const user = userRepository.getUser(userPhone);
           if (!user || !user.conversation) {
             return "No se encontró el usuario o no tiene conversación.";
