@@ -17,6 +17,7 @@ import type {
 } from "../types/TwoChatTypes";
 import { logger } from "../../logger";
 import { openAiClient } from "../openAi/OpenAIClient";
+import { sendMessageToUser } from "../../tools/requestUserInformation";
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -192,6 +193,7 @@ export class TwoChatMessenger {
         payload.message.media.type === "ptt" ||
         payload.message.media.type === "audio"
       ) {
+        sendMessageToUser(payload.remote_phone_number, `🔊 Estoy procesando el audio. Dame un momento... ⏳🎤`);
         try {
           standardizedPayload.content.text = await openAiClient.transcriptAudio(payload.message.media.url);
           //standardizedPayload.content.text =
