@@ -6,7 +6,6 @@ import {
   type Message,
   type User,
   userRepository,
-  UserSchema,
 } from "../repository/userRepository";
 import { generateText, tool } from "ai";
 import { z } from "zod";
@@ -19,24 +18,16 @@ export async function receiveWebhook(
   res: Response
 ): Promise<void> {
   try {
-    console.log("received webhook");
     const { body } = req;
-
-    console.log("body is", body);
-    // Process the webhook payload
     const payload = await twoChatMessenger.processWebhookPayload(body);
-
-    // Check if it's a message read event
     if ("event" in payload && payload.event === "message.read") {
       logger.info({ payload }, "Message read event");
       res.status(200).send({ message: "Message read event processed" });
       return;
     }
 
-    // Cast to StandardizedWebhookPayload and extract relevant data
     const standardizedPayload = payload as StandardizedWebhookPayload;
     const userPhoneNumber = standardizedPayload.from;
-    const fromNumber = process.env.TWO_CHAT_PHONE_NUMBER || "";
 
     logger.info(
       {
@@ -57,7 +48,6 @@ export async function receiveWebhook(
   }
 }
 
-// this is the main app workflow
 async function handleMessage(
   payload: StandardizedWebhookPayload,
   fromNumber: string
