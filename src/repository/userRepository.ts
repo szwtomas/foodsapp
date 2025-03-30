@@ -41,25 +41,25 @@ export const UserSchema = z.object({
   age: z.number().int().positive().optional(),
   phoneNumber: z.string().min(5), // ID
   name: z.string().min(1).optional(),
-  goal: z.array(
-    z.enum([
-      "loseWeight",
-      "gainWeight",
-      "maintainWeight",
-      "eatWholeFoods",
-      "eatBalanced",
-    ]).optional()
-  ).optional(),
+  goal: z
+    .array(
+      z
+        .enum([
+          "loseWeight",
+          "gainWeight",
+          "maintainWeight",
+          "eatWholeFoods",
+          "eatBalanced",
+        ])
+        .optional()
+    )
+    .optional(),
   sex: z.enum(["male", "female", "other"]).optional(),
   height: z.number().positive().optional(),
   weight: z.number().positive().optional(),
-  physicalActivityLevel: z.enum([
-    "sedentary",
-    "light",
-    "moderate",
-    "active",
-    "veryActive",
-  ]).optional(),
+  physicalActivityLevel: z
+    .enum(["sedentary", "light", "moderate", "active", "veryActive"])
+    .optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
   diseases: z.array(z.string()).optional(),
   conversation: z.array(MessageSchema).optional(),
@@ -85,9 +85,7 @@ export class UserRepository {
   createUser(userData: User): User {
     try {
       // Validate the input data
-      const validatedData = UserSchema.parse(
-        userData
-      );
+      const validatedData = UserSchema.parse(userData);
 
       const newUser: User = {
         ...validatedData,
@@ -114,7 +112,7 @@ export class UserRepository {
 
   createUserFromNumber(phoneNumber: string): User {
     let user = this.createUser({ phoneNumber });
-    console.log("saved", user)
+    console.log("saved", user);
     return user;
   }
 
@@ -257,7 +255,9 @@ export class UserRepository {
 
   getLastPendingFoodLogEntry(phoneNumber: string): FoodLog | undefined {
     const user = this.users.get(phoneNumber);
-    return user?.foodLogs?.filter((log) => log.status === "pending").sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+    return user?.foodLogs
+      ?.filter((log) => log.status === "pending")
+      .sort((a, b) => b.date.getTime() - a.date.getTime())[0];
   }
 
   // Get a specific food log by index
@@ -288,8 +288,7 @@ export class UserRepository {
     updates: Partial<Omit<FoodLog, "date">>
   ): FoodLog | undefined {
     const user = this.users.get(phoneNumber);
-    if (!user || !user.foodLogs)
-      return undefined;
+    if (!user || !user.foodLogs) return undefined;
 
     try {
       // Validate the updates
@@ -298,9 +297,9 @@ export class UserRepository {
         .parse(updates);
 
       // Find the food log and create updated version
-      const foodLog = user.foodLogs.find(log => log.id === id);
+      const foodLog = user.foodLogs.find((log) => log.id === id);
       if (!foodLog) return undefined;
-      
+
       const updatedFoodLog: FoodLog = {
         ...foodLog,
         ...validatedUpdates,
@@ -309,7 +308,8 @@ export class UserRepository {
       // Validate the complete food log object
       FoodLogSchema.parse(updatedFoodLog);
 
-      user.foodLogs[user.foodLogs.findIndex(log => log.id === id)] = updatedFoodLog;
+      user.foodLogs[user.foodLogs.findIndex((log) => log.id === id)] =
+        updatedFoodLog;
       return updatedFoodLog;
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
@@ -326,10 +326,13 @@ export class UserRepository {
   // Delete a food log
   deleteFoodLog(phoneNumber: string, id: string): boolean {
     const user = this.users.get(phoneNumber);
-    if (!user || !user.foodLogs || !user.foodLogs.find(log => log.id === id))
+    if (!user || !user.foodLogs || !user.foodLogs.find((log) => log.id === id))
       return false;
 
-    user.foodLogs.splice(user.foodLogs.findIndex(log => log.id === id), 1);
+    user.foodLogs.splice(
+      user.foodLogs.findIndex((log) => log.id === id),
+      1
+    );
     return true;
   }
 
@@ -340,14 +343,14 @@ export class UserRepository {
     foodData: Food
   ): Food | undefined {
     const user = this.users.get(phoneNumber);
-    if (!user || !user.foodLogs || !user.foodLogs.find(log => log.id === id))
+    if (!user || !user.foodLogs || !user.foodLogs.find((log) => log.id === id))
       return undefined;
 
     try {
       // Validate the food data
       const validatedFood = FoodSchema.parse(foodData);
 
-      const foodLog = user.foodLogs.find(log => log.id === id);
+      const foodLog = user.foodLogs.find((log) => log.id === id);
       if (!foodLog) return undefined;
       foodLog.foods.push(validatedFood);
 

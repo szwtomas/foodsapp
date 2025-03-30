@@ -2,7 +2,12 @@ import type { Request, Response } from "express";
 import { logger } from "../logger";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 import type { StandardizedWebhookPayload } from "../services/types/TwoChatTypes";
-import { type Message, type User, userRepository, UserSchema } from "../repository/userRepository";
+import {
+  type Message,
+  type User,
+  userRepository,
+  UserSchema,
+} from "../repository/userRepository";
 import { generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
@@ -41,7 +46,7 @@ export async function receiveWebhook(
       "Received message"
     );
 
-    await handleMessage(standardizedPayload, fromNumber);
+    await handleMessage(standardizedPayload, userPhoneNumber);
 
     // Respond with "hola" to any incoming message
 
@@ -65,39 +70,54 @@ async function handleMessage(
   payload: StandardizedWebhookPayload,
   fromNumber: string
 ) {
-  let  user = userRepository.getUser(fromNumber);
+  let user = userRepository.getUser(fromNumber);
 
   console.log("user is", user);
   if (!user) {
-     user = userRepository.createUserFromNumber(fromNumber);
+    user = userRepository.createUserFromNumber(fromNumber);
   }
 
-  let lastConversationMessages: Message[] = []
-  if (user?.conversation?.length){
+  let lastConversationMessages: Message[] = [];
+  if (user?.conversation?.length) {
     const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
-    lastConversationMessages = user.conversation.filter((msg) => msg.timestamp > last5Minutes);
+    lastConversationMessages = user.conversation.filter(
+      (msg) => msg.timestamp > last5Minutes
+    );
   }
-
 
   const { text: result, steps: steps } = await generateText({
     model: openai("o3-mini", { structuredOutputs: true }),
     tools: {
       requestUserInformation: tool({
-        description: "Solicita información al usuario para completar su perfil.",
+        description:
+          "Solicita información al usuario para completar su perfil.",
         parameters: z.object({
-          user: UserSchema.describe("El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."),
+          user: z
+            .object({
+              phoneNumber: z.string(),
+            })
+            .describe(
+              "El perfil del usuario, los datos están como opcionales porque el objetivo de esta tool es pedirle al usuario que complete la información que le falte."
+            ),
         }),
-        execute: executeRequestUserInformationTool
-      })
+        execute: executeRequestUserInformationTool,
+      }),
     },
-    prompt: lastConversationMessages.length ? lastConversationMessages[lastConversationMessages.length - 1]?.content : "",
+    prompt: lastConversationMessages.length
+      ? lastConversationMessages[lastConversationMessages.length - 1]?.content
+      : "",
     system: systemPrompt(user, lastConversationMessages),
-
-  })
-  console.log("stepsTaken: ", steps.flatMap((step) => step.toolCalls));
+  });
+  console.log(
+    "stepsTaken: ",
+    steps.flatMap((step) => step.toolCalls)
+  );
 }
 
-const systemPrompt = (user?: User, last5MinutesConversation?:Message[]): string => `
+const systemPrompt = (
+  user?: User,
+  last5MinutesConversation?: Message[]
+): string => `
   Sos Nutrito, un asistente nutricional mediante WhatsApp 
   especializado en:
   1. Registrar los alimentos que consume el usuario con sus valores nutricionales, tanto calorías, como macronutrientes y micronutrientes.
@@ -178,10 +198,8 @@ const systemPrompt = (user?: User, last5MinutesConversation?:Message[]): string 
   Acción: generateReport con reportType="weekly"
 
   # Información actual en la base de datos del usuario:
-  ${user}
+  ${JSON.stringify(user)}
 
   # Últimos mensajes en la conversación:
-  ${last5MinutesConversation}
-`; 
-
-
+  ${JSON.stringify(last5MinutesConversation)}
+`;
