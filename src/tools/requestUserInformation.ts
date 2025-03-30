@@ -2,13 +2,13 @@ import type { User } from "../repository/userRepository";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 
 
-async function sendMessageToUser(user: User, message: string) {
+export async function sendMessageToUser(userPhone: string, message: string) {
     await twoChatMessenger.sendMessage({
-      to_number: user.phoneNumber,
+      to_number: userPhone,
       from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
-      text: "hola",
+      text: message,
     });
-    console.log(`Sent message ${message} to ${user.phoneNumber} from ${process.env.TWO_CHAT_PHONE_NUMBER}`);
+    console.log(`Sent message ${message} to ${userPhone} from ${process.env.TWO_CHAT_PHONE_NUMBER}`);
 }
 
 function buildInstructionsMessage(user: User): string {
@@ -37,10 +37,10 @@ export async function executeRequestUserInformationTool({user}: {user: User}) {
     .map(([fieldName]) => fieldName);
 
   if (undefinedFields.length === 0) {
-    await sendMessageToUser(user, buildInstructionsMessage(user));
+    await sendMessageToUser(user.phoneNumber, buildInstructionsMessage(user));
     return "Ya pedí todos los datos y mandé la información de instrucciones, NO LLAMAR A MAS TOOLS";
   }
   
-  await sendMessageToUser(user, buildMissingFieldsText(undefinedFields));
+  await sendMessageToUser(user.phoneNumber, buildMissingFieldsText(undefinedFields));
   return "Ya le pedí al usuario los datos faltantes, NO LLAMAR A MAS TOOLS";
 }

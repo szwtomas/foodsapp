@@ -70,7 +70,7 @@ export const UserSchema = z.object({
 type Macros = z.infer<typeof MacrosSchema>;
 type Micro = z.infer<typeof MicroSchema>;
 type Food = z.infer<typeof FoodSchema>;
-type FoodLog = z.infer<typeof FoodLogSchema>;
+export type FoodLog = z.infer<typeof FoodLogSchema>;
 export type Message = z.infer<typeof MessageSchema>;
 export type User = z.infer<typeof UserSchema>;
 
