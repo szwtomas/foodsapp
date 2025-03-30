@@ -60,13 +60,13 @@ export async function pendingFoodLogEntryCorrection(
       messages: [
         { 
           role: "system", 
-          content: `Extrae de los ultimos mensajes del usuario (considerando que el usuario realizo una correccion al ultimo registro de comida) una posible comida con su descripción, macro y micro nutrientes.
-          En caso de poder identificar una comida y generar una descripción de la misma, entonces analiza los nutrientes
+          content: `Extrae de los ultimos mensajes del usuario (considerando que el usuario realizo una correccion al ultimo registro de alimento) un posible alimento con su descripción, macro y micro nutrientes.
+          En caso de poder identificar un alimento y generar una descripción de la misma, entonces analiza los nutrientes
           y crea un objeto JSON con los datos correspondientes.
-          Asegurate de que la correccion hecha por el usuario este presente en la nueva descripcion de la comida.
-          Si no se pudo identificar ninguna comida, responde con null.
+          Asegurate de que la correccion hecha por el usuario este presente en la nueva descripcion de el alimento.
+          Si no se pudo identificar ningun alimento, responde con null.
 
-          ES DE SUMA IMPORTANCIA que la descripción de la comida sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
+          ES DE SUMA IMPORTANCIA que la descripción de el alimento sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
           
           El objeto debe tener la siguiente estructura:
           {
@@ -112,7 +112,7 @@ export async function pendingFoodLogEntryCorrection(
     
     // If the response is 'null', return early
     if (responseText.trim() === 'null') {
-      await sendMessageToUser(userPhone, "No pude identificar una comida en el mensaje. Por favor, intenta de nuevo.");
+      await sendMessageToUser(userPhone, "No pude identificar un alimento en el mensaje. Por favor, intenta de nuevo.");
       return "Se respondió al usuario correctamente.";
     }
     
@@ -141,11 +141,11 @@ export async function pendingFoodLogEntryCorrection(
 
     await sendMessageToUser(userPhone, buildFoodLogMessage(foodLog));
     
-    return "Se ha registrado correctamente la comida.";
+    return "Se ha registrado correctamente el alimento.";
   } catch (error) {
-    console.error('Error al validar la entrada de comida:', error);
-    await sendMessageToUser(userPhone, "Hubo un error al procesar tu comida. Por favor, intenta de nuevo con más detalles.");
-    return "Error al procesar la entrada de comida.";
+    console.error('Error al validar la entrada de alimento:', error);
+    await sendMessageToUser(userPhone, "Hubo un error al procesar tu alimento. Por favor, intenta de nuevo con más detalles.");
+    return "Error al procesar la entrada de alimento.";
   }
 }
 

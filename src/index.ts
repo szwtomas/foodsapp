@@ -71,7 +71,7 @@ userRepository.createUser({
   diseases: ["hypertension"],
   conversation: [
     {
-      content: { text: "Hola, quiero registrar mi comida" },
+      content: { text: "Hola, quiero registrar mi alimento" },
       timestamp: new Date(Date.now()),
       sender: "user"
     },

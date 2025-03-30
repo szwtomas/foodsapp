@@ -213,7 +213,7 @@ async function handleMessage(
             model: openai("o3-mini", { structuredOutputs: true }),
             tools: {
                 newPendingFoodLogEntry: tool({
-                    description: "Extrae descripcion de comida de los mensajes del usuario para registrar la comida en estado pendiente de validacion.",
+                    description: "Extrae descripcion de alimentos de los mensajes del usuario para registrar los alimentos en estado pendiente de validacion.",
                     parameters: z.object({
                         userPhone: z.string().describe("El número de teléfono del usuario"),
                         conversationContext: z.array(
@@ -249,7 +249,7 @@ async function handleMessage(
                     }
                 }),
                 pendingFoodLogEntryCorrection: tool({
-                    description: "Corrige la entrada de comida pendiente.",
+                    description: "Corrige la entrada de alimento pendiente.",
                     parameters: z.object({
                         userPhone: z.string().describe("El número de teléfono del usuario"),
                         conversationContext: z.array(
@@ -272,7 +272,7 @@ async function handleMessage(
                     }
                 }),
                 foodLogEntryConfirmation: tool({
-                    description: "Registra la validación de la última entrada de comida pendiente.",
+                    description: "Registra la validación de la última entrada de alimento pendiente.",
                     parameters: z.object({
                         userPhoneNumber: z.string().describe("El número de teléfono del usuario")
                     }),
@@ -391,13 +391,13 @@ const systemPrompt = (
 
   - Si el usuario manda una foto entonces DEBES usar el tool processImage para identificar los alimentos. 
 
-  # Registro de comidas de un usuario registrado
+  # Registro de alimentos de un usuario registrado
   - El usuario podrá enviarte diferentes tipos de mensajes: texto, imagen y audio que recibirás transcribido.
-  - Al recibir un mensaje lo analizarás y crearás un resumen con la descripción de la comida que validarás con el usuario para verificar su correctitud.
-  - Si no podes identificar una comida en el mensaje, respondé amigablemente pidiendo más detalles.
-  - Cuando el usuario manda un mensaje sobre comida, se utilizará la tool newPendingFoodLogEntry para generar una descripcion de la comida y sus valores nutricionales, guarando la informacion con estado pendiente de validacion.
-  - Si el usuario confirma la descripcion de la comida, se utilizará la tool foodLogEntryConfirmation para validar la entrada de comida.
-  - En caso de que el usuario niegue la descripcion de la comida, se utilizará la tool pendingFoodLogEntryCorrection para corregir la entrada de comida pendiente.
+  - Al recibir un mensaje lo analizarás y crearás un resumen con la descripción de el alimento que validarás con el usuario para verificar su correctitud.
+  - Si no podes identificar un alimento en el mensaje, respondé amigablemente pidiendo más detalles.
+  - Cuando el usuario manda un mensaje sobre alimentos, se utilizará la tool newPendingFoodLogEntry para generar una descripcion de el alimento y sus valores nutricionales, guarando la informacion con estado pendiente de validacion.
+  - Si el usuario confirma la descripcion de el alimento, se utilizará la tool foodLogEntryConfirmation para validar la entrada de alimento.
+  - En caso de que el usuario niegue la descripcion de el alimento, se utilizará la tool pendingFoodLogEntryCorrection para corregir la entrada de alimento pendiente.
   
   # Herramientas disponibles
   Tenés acceso a las siguientes herramientas:
@@ -415,18 +415,18 @@ const systemPrompt = (
   - userPhone: user phone number.
   
   ## newPendingFoodLogEntry
-  Esta herramienta identifica la comida enviada por el usuario, generando una descripcion de la misma. Envía un mensaje al usuario para validar la descripción.
+  Esta herramienta identifica el alimento enviada por el usuario, generando una descripcion de la misma. Envía un mensaje al usuario para validar la descripción.
   Parámetros:
   - conversationContext: contexto reciente de la conversación.
   - userPhone: user phone number.
   
   ## foodLogEntryConfirmation
-  Esta herramienta registra una entrada de comida una vez validada.
+  Esta herramienta registra una entrada de alimento una vez validada.
   Parámetros:
   - userPhone: user phone number.
 
   ## pendingFoodLogEntryCorrection
-  Esta herramienta corrige la ultima entrada de comida pendiente.
+  Esta herramienta corrige la ultima entrada de alimento pendiente.
   Parámetros:
   - userPhone: user phone number.
   - conversationContext: contexto reciente de la conversación
@@ -439,19 +439,19 @@ const systemPrompt = (
   - userPhone: user phone number.
   
   ## foodLogEntryConfirmation
-  Esta herramienta registra la validacion de la ultima entrada de comida pendiente a ser validada.
+  Esta herramienta registra la validacion de la ultima entrada de alimento pendiente a ser validada.
   Parámetros:
   - userPhone: user phone number.
   
   # Usos de las herramientas
-  - Si el usuario está registrando comida: primero utiliza newPendingFoodLogEntry. Si el usuario confirma la descripcion, se utilizara foodLogEntryConfirmation. Si el usuario niega la descripcion, se debera utilizar pendingFoodLogEntryCorrection.
+  - Si el usuario está registrando alimentos: primero utiliza newPendingFoodLogEntry. Si el usuario confirma la descripcion, se utilizara foodLogEntryConfirmation. Si el usuario niega la descripcion, se debera utilizar pendingFoodLogEntryCorrection.
   - Si el usuario pide un reporte: utiliza generateReport.
   - Si falta información del usuario: utiliza requestUserInformation.
   
   # Ejemplos
   
   Usuario: "Hola, comí una ensalada césar"
-  Acción: newPendingFoodLogEntry con los mensajes de la conversación. Se enviara un mensaje al usuario con la descripción de la comida para validar.
+  Acción: newPendingFoodLogEntry con los mensajes de la conversación. Se enviara un mensaje al usuario con la descripción de el alimento para validar.
     Caso confirmacion: 
       Usuario: "Si, es correcto"
       Acción: foodLogEntryConfirmation

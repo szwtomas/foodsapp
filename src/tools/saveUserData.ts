@@ -24,9 +24,9 @@ export async function saveUserData(
       to_number: receivedUser.phoneNumber,
       from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
       text: `¡Gracias por completar tu perfil! 🙂
-Te comentamos como registrar tus comidas de la forma más sencilla!
-Primero, envíame la comida que desees registrar, puedes hacerlo mediante texto, audio o imagen!
-Luego validaré la comida y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!
+Te comentamos como registrar tus alimentos de la forma más sencilla!
+Primero, envíame el alimento que desees registrar, puedes hacerlo mediante texto, audio o imagen!
+Luego validaré el alimento y te daré un feedback sobre su calidad, ademas de darte resumen o reporte si me los pides!
 ¡A comer rico rico! Pero sanito 🥑`});
 
 

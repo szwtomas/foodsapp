@@ -88,12 +88,12 @@ export async function processImage(
         messages: [
             { 
                 role: "system", 
-                content: `Extrae del la foto del usuario una posible comida con su descripción, macro y micro nutrientes.
-                En caso de poder identificar una comida y generar una descripción de la misma, entonces analiza los nutrientes
+                content: `Extrae del la foto del usuario un posible alimento con su descripción, macro y micro nutrientes.
+                En caso de poder identificar un alimento y generar una descripción de la misma, entonces analiza los nutrientes
                 y crea un objeto JSON con los datos correspondientes.
-                Si no se pudo identificar ninguna comida, responde con null.
+                Si no se pudo identificar ningun alimento, responde con null.
       
-                ES DE SUMA IMPORTANCIA que la descripción de la comida sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
+                ES DE SUMA IMPORTANCIA que la descripción de el alimento sea lo más sencilla y concisa posible, teniendo en cuenta todos los ingredientes mencionados.
                 
                 El objeto debe tener la siguiente estructura:
                 {
@@ -153,7 +153,7 @@ export async function processImage(
 
     // Handle the response from the AI model
     if (!description) {
-        throw new Error("No se pudo identificar ninguna comida en la imagen.");
+        throw new Error("No se pudo identificar ningun alimento en la imagen.");
     }
 
     
@@ -180,7 +180,7 @@ export async function processImage(
 
     await sendMessageToUser(userPhoneNumber, buildFoodLogMessage(foodLog));
     
-    return "Se ha registrado correctamente la comida.";
+    return "Se ha registrado correctamente el alimento.";
 }
 
 

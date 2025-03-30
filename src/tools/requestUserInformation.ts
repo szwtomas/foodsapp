@@ -14,7 +14,7 @@ export async function sendMessageToUser(userPhone: string, message: string) {
 }
 
 function buildInstructionsMessage(user: User): string {
-  return "Gracias animal! Me podés ir pasando fotos, audio o texto con la comida que vayas comiendo :)";
+  return "Gracias animal! Me podés ir pasando fotos, audio o texto con el alimento que vayas comiendo :)";
 }
 
 function buildMissingFieldsText(missingFields: string[]): string {
