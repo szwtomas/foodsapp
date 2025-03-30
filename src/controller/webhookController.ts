@@ -11,9 +11,10 @@ import { generateText, tool } from "ai";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { executeRequestUserInformationTool } from "../tools/requestUserInformation";
-import { newPendingFoodLogEntry } from "../tools/newPendingFoodLogEntry";
 import { processImage } from "../tools/processImage";
 import { generateReport } from "../tools/generateReport";
+import { newPendingFoodLogEntry } from "../tools/newPendingFoodLogEntry";
+import { saveUserData } from "../tools/saveUserData";
 import { foodLogEntryConfirmation } from "../tools/foodLogEntryConfirmation";
 import { pendingFoodLogEntryCorrection } from "../tools/pendingFoodLogEntryCorrection";
 export async function receiveWebhook(
@@ -52,6 +53,18 @@ export async function receiveWebhook(
     }
 }
 
+function userIsInOnboarding(user: User): boolean {
+  return user.age === undefined
+    || user.name === undefined
+    || user.goal === undefined
+    || user.sex === undefined
+    || user.height === undefined
+    || user.weight === undefined
+    || user.physicalActivityLevel === undefined
+    || user.dietaryRestrictions === undefined
+    || user.diseases === undefined;
+}
+
 async function handleMessage(
     payload: StandardizedWebhookPayload,
     fromNumber: string
@@ -82,6 +95,58 @@ async function handleMessage(
         );
     }
 
+    if (userIsInOnboarding(user)) {
+      console.log("user is in onboarding");
+      const { text: result, steps } = await generateText({
+        model: openai("o3-mini", { structuredOutputs: true }),
+        prompt: lastConversationMessages.map(msg => `${msg.content.text}\n${msg.content.media?.url || ""}`).join("\n"),
+        system: onboardingSystemPrompt(user, lastConversationMessages),
+        maxSteps: 2,
+        tools: {
+          requestUserInformation: tool({
+            description:
+                "Solicita información al usuario para completar su perfil si su mensaje no aporta datos.",
+            parameters: z.object({
+                user: z
+                    .object({
+                        phoneNumber: z.string(),
+                    })
+                    .describe(
+                        `El numero de telefono del usuario, es siempre ${user.phoneNumber}`
+                    ),
+            }),
+            execute: executeRequestUserInformationTool,
+          }),
+          saveUserInformation: tool({
+              description: "Guarda la información del usuario si su mensaje aporta datos.",
+              parameters: z.object({
+                user: z.object({
+                  phoneNumber: z.string().describe("El numero de telefono del usuario, provisto en el ultimo mensaje del usuario"),
+                  age: z.number().describe("La edad del usuario, provista en el ultimo mensaje del usuario"),
+                  name: z.string().describe("El nombre del usuario, provisto en el ultimo mensaje del usuario"),
+                  goal: z.array(z.string()).describe("El objetivo del usuario, provisto en el ultimo mensaje del usuario"),
+                  sex: z.string().describe("El sexo del usuario, provisto en el ultimo mensaje del usuario"),
+                  height: z.number().describe("La altura del usuario, provista en el ultimo mensaje del usuario"),
+                  weight: z.number().describe("El peso del usuario, provisto en el ultimo mensaje del usuario"),
+                  diseases: z.array(z.string()).describe("Las enfermedades del usuario, provistas en el ultimo mensaje del usuario"),
+                  physicalActivityLevel: z.string().describe("El nivel de actividad física del usuario, provisto en el ultimo mensaje del usuario"),
+                  dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario"),
+                })
+              }),
+              execute: saveUserData
+          })
+        }
+      });
+
+      console.log("result", result);
+      console.log("steps", steps);
+      console.log("user is in onboarding flow returned");
+      const newUserData = userRepository.getUser(fromNumber);
+      console.log("newUserData after flow", newUserData);
+      return;
+    }
+    
+    console.log("user is not in onboarding!!!");
     const { text: result, steps } = await generateText({
         model: openai("o3-mini", { structuredOutputs: true }),
         tools: {
@@ -199,6 +264,53 @@ async function handleMessage(
         steps.flatMap((step) => step.toolCalls)
     );
 }
+
+const onboardingSystemPrompt = (
+  user?: User,
+  last5MinutesConversation?: Message[]
+): string => `
+Sos Nutrito, un asistente nutricional mediante WhatsApp 
+  especializado en:
+  1. Registrar los alimentos que consume el usuario con sus valores nutricionales, tanto calorías, como macronutrientes y micronutrientes.
+  2. Aconsejar y proponer mejoras de dieta a los usuarios para cumplir con sus objetivos teniendo en cuenta sus preferencias y restricciones alimentarias.
+  3. Genera reportes de progreso y cambios en la dieta del usuario.
+  4. Genera alertas para el usuario en caso de que se detecte un desequilibrio en su dieta.
+  5. Genera prevenciones para el usuario en caso de que tenga restricciones específicas como intolerancias, alergias, etc.
+
+  # Comunicación
+  Comunicá con el usuario en cualquier lenguaje que entienda el usuario.
+  Siempre que tengas que pedirle al usuario algún dato, lo hagas de la manera más amigable posible.
+  Siempre que tengas que mostrarle algún dato, lo hagas de la manera más clara y entendible posible.
+  Respondele con un estilo de lenguaje sencillo, simpático, profesional, cercano, amigable, directo, corto y argentino.
+
+  # Instrucciones
+  
+  Vas a decidir entre 2 tools para ejecutar:
+  1- requestUserInformation: Cuando el usuario no tiene toda la información necesaria para registrarse, y en su mensaje actual NO NOS ESTÁ DANDO TODOS LOS DATOS QUE NECESITAMOS
+  entonces debes ejecutar esta tool para pedirle al usuario que complete la información. Los datos que debes tener son:
+  - Edad (age)
+  - Nombre (name)
+  - Objetivo (goal)
+  - Género (gender)
+  - Altura (height)
+  - Peso (weight)
+  - Nivel de actividad física (physicalActivityLevel) 
+  - Restricciones alimentarias (dietaryRestrictions) (puede ser array vacío en caso de no tener)
+  - Enfermedades (diseases) (puede ser array vacío en caso de no tener)
+
+  SOLO EJECUTA ESTA TOOL CUANDO EL USUARIO NO TENGA TODA LA INFORMACIÓN NECESARIA.
+
+  2- saveUserInformation: Cuando el ÚLTIMO MENSAJE DEL USUARIO tiene información necesaria, entonces debes ejecutar esta tool para guardar la información en la base de datos.
+  Si el mensaje del usuario NO aporta datos, entonces no ejecutes esta tool, en cambio si aporta datos, entonces DEBES ejecutar esta tool para guardar la información.
+
+  # El numero de telefono del usuario es: ${user?.phoneNumber}
+
+  # Últimos mensajes en la conversación:
+  ${JSON.stringify(last5MinutesConversation)}
+
+  A partir de estos últimos mensajes, decí si el usuario tiene toda la información necesaria para registrarse o no.
+
+`;
 
 const systemPrompt = (
     user?: User,

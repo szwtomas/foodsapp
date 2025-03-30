@@ -1,7 +1,8 @@
-import type { User } from "../repository/userRepository";
+import { userRepository, type User } from "../repository/userRepository";
 import { twoChatMessenger } from "../services/twochat/TwoChatMessenger";
 
 export async function sendMessageToUser(userPhone: string, message: string) {
+  console.log(`About to send message to user ${userPhone} content ${message}`);
   await twoChatMessenger.sendMessage({
     to_number: userPhone,
     from_number: process.env.TWO_CHAT_PHONE_NUMBER || "",
@@ -41,21 +42,29 @@ export async function executeRequestUserInformationTool({
 }: {
   user: User;
 }) {
+  console.log("inside executeRequestUserInformationTool, received user", user);
+  const userFromDb = userRepository.getUser(user.phoneNumber);
+  if (!userFromDb) {
+    return "No se encontró el usuario en la base de datos, NO LLAMAR A MAS TOOLS";
+  }
+
   const missingUserFields = {
-    age: user.age === undefined,
-    name: user.name === undefined,
-    goal: user.goal === undefined,
-    sex: user.sex === undefined,
-    height: user.height === undefined,
-    weight: user.weight === undefined,
-    physicalActivityLevel: user.physicalActivityLevel === undefined,
-    dietaryRestrictions: user.dietaryRestrictions === undefined,
-    diseases: user.diseases === undefined,
+    age: userFromDb.age === undefined,
+    name: userFromDb.name === undefined,
+    goal: userFromDb.goal === undefined,
+    sex: userFromDb.sex === undefined,
+    height: userFromDb.height === undefined,
+    weight: userFromDb.weight === undefined,
+    physicalActivityLevel: userFromDb.physicalActivityLevel === undefined,
+    dietaryRestrictions: userFromDb.dietaryRestrictions === undefined,
+    diseases: userFromDb.diseases === undefined,
   };
 
   const undefinedFields = Object.entries(missingUserFields)
     .filter(([_, isUndefined]) => isUndefined)
     .map(([fieldName]) => fieldName);
+
+  console.log("undefinedFields", undefinedFields);
 
   if (undefinedFields.length === 0) {
     await sendMessageToUser(user.phoneNumber, buildInstructionsMessage(user));
