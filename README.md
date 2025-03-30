@@ -1,27 +1,10 @@
-# TypeScript Node.js Project
+# Foodsapp
 
-A simple TypeScript Node.js project that prints "Hello, World!".
+Nutricionista AI con seguimiento en tiempo real.
 
 ## Setup
 
-1. Install dependencies:
+Run the project:
 ```bash
-npm install
+docker compose up
 ```
-
-2. Run the project:
-- Development mode (using ts-node):
-```bash
-npm run dev
-```
-- Production mode (build and run):
-```bash
-npm run build
-npm start
-```
-
-## Scripts
-
-- `npm run dev`: Run the project in development mode
-- `npm run build`: Build the TypeScript files
-- `npm start`: Run the built JavaScript files 

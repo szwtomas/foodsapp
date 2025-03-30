@@ -8,7 +8,6 @@ export async function saveUserData(
   user: any
 ): Promise<string> {
   const receivedUser = user.user;
-  console.log("inside saveUserData, received user", receivedUser);
 
   const updatedUser = userRepository.updateUser(receivedUser.phoneNumber, receivedUser);
 

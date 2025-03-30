@@ -38,7 +38,6 @@ export async function executeRequestUserInformationTool({
 }: {
   user: User;
 }) {
-  console.log("inside executeRequestUserInformationTool, received user", user);
   const userFromDb = userRepository.getUser(user.phoneNumber);
   if (!userFromDb) {
     return "No se encontró el usuario en la base de datos, NO LLAMAR A MAS TOOLS";

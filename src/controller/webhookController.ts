@@ -144,7 +144,14 @@ async function handleMessage(
                                 `El numero de telefono del usuario, es siempre ${user.phoneNumber}`
                             ),
                     }),
-                    execute: executeRequestUserInformationTool,
+                    execute: async ({ user }, messages) => {
+                      console.log("inside executeRequestUserInformationTool, received user", user);
+
+                      if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "requestUserInformation") {
+                        return 'terminar flujo';
+                      }
+                      return await executeRequestUserInformationTool({user});
+                    }
                 }),
                 saveUserInformation: tool({
                     description: "Guarda la información del usuario si su mensaje aporta datos. Si hay datos faltantes llamar a la tool de requestUserInformation.",
@@ -162,13 +169,19 @@ async function handleMessage(
                             dietaryRestrictions: z.array(z.string()).describe("Las restricciones alimentarias del usuario, provistas en el ultimo mensaje del usuario. Si el usuario no aporta este dato, mandar un string vacío"),
                         })
                     }),
-                    execute: saveUserData
+                    execute: async (user, messages) => {
+                        console.log("inside saveUserData", user);
+                        if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "saveUserInformation") {
+                          return 'terminar flujo';
+                        }
+                        return await saveUserData(user);
+                    }
                 })
             }
         });
 
         console.log("result", result);
-        console.log("steps", steps);
+        console.log("steps", steps.flatMap((step) => step.toolCalls));
         console.log("user is in onboarding flow returned");
         const newUserData = userRepository.getUser(fromNumber);
         console.log("newUserData after flow", newUserData);
@@ -187,7 +200,10 @@ async function handleMessage(
                         userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
                         imageUrl: z.string().describe("URL de la imagen a procesar")
                     }),
-                    execute: async ({ userPhoneNumber, imageUrl }) => {
+                    execute: async ({ userPhoneNumber, imageUrl }, messages) => {
+                      if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "processImage") {
+                        return 'terminar flujo';
+                      }
                         return await processImage(userPhoneNumber, imageUrl);
                     }
                 }),
@@ -198,7 +214,10 @@ async function handleMessage(
                         startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
                         endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
                     }),
-                    execute: async ({ userPhoneNumber, startDate, endDate }) => {
+                    execute: async ({ userPhoneNumber, startDate, endDate }, messages) => {
+                      if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "generateReport") {
+                        return 'terminar flujo';
+                      }
                         return await generateReport(userPhoneNumber, startDate, endDate);
                     }
                 })
@@ -236,7 +255,11 @@ async function handleMessage(
                             })
                         )
                     }),
-                    execute: async ({ userPhone, conversationContext }) => {
+                    execute: async ({ userPhone, conversationContext }, messages) => {  
+                      if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "newPendingFoodLogEntry") {
+                        return 'terminar flujo';
+                      }
+                        console.log(`inside newPendingFoodLogEntry for user ${userPhone}`);
                         // Convert the conversation context to the format expected by newPendingFoodLogEntry
                         // This is already in the right format since we defined the schema above
 
@@ -273,6 +296,7 @@ async function handleMessage(
                         )
                     }),
                     execute: async ({ userPhone, conversationContext }) => {
+                        console.log(`inside pendingFoodLogEntryCorrection for user ${userPhone}`);
                         return await pendingFoodLogEntryCorrection(userPhone, conversationContext);
                     }
                 }),
@@ -281,7 +305,11 @@ async function handleMessage(
                     parameters: z.object({
                         userPhoneNumber: z.string().describe("El número de teléfono del usuario")
                     }),
-                    execute: async ({ userPhoneNumber }) => {
+                    execute: async ({ userPhoneNumber }, messages) => {
+                        if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "foodLogEntryConfirmation") {
+                            return 'terminar flujo';
+                        }
+                        console.log(`inside foodLogEntryConfirmation for user ${userPhoneNumber}`);
                         return await foodLogEntryConfirmation(userPhoneNumber);
                     }
                 }),
@@ -290,9 +318,13 @@ async function handleMessage(
                     parameters: z.object({
                         userPhoneNumber: z.string().describe("El número de teléfono del usuario"),
                         startDate: z.string().describe("La fecha de inicio del reporte en el formato: 'YYYY-MM-DD'"),
-                        endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD'"),
+                        endDate: z.string().describe("La fecha de fin del reporte en el formato: 'YYYY-MM-DD', si habla de hoy, elije mañana como fecha. Por ejemplo, si un 2025-03-27 se manda un quiero un reporte de lo que comi hoy, esto debe ser 31-03-2025"),
                     }),
-                    execute: async ({ userPhoneNumber, startDate, endDate }) => {
+                    execute: async ({ userPhoneNumber, startDate, endDate }, messages) => {
+                        if (messages.messages.length > 2 && messages.messages[2].role === "tool" && messages.messages[2]?.content[0]?.toolName === "generateReport") {
+                            return 'terminar flujo';
+                        }
+                        console.log(`inside generateReport for user ${userPhoneNumber}`);
                         return await generateReport(userPhoneNumber, startDate, endDate);
                     }
                 }),
@@ -347,14 +379,10 @@ Sos Nutrito, un asistente nutricional mediante WhatsApp
   2- saveUserInformation: Cuando el ÚLTIMO MENSAJE DEL USUARIO tiene al menos parcialmente la información necesaria, entonces debes ejecutar esta tool para guardar la información en la base de datos. 
   Si el mensaje del usuario NO aporta datos, entonces no ejecutes esta tool, en cambio si aporta datos, entonces DEBES ejecutar esta tool para guardar la información.
 
-  Luego de llamar a saveUserData utilizar el resultado para saber si debemos terminar el flujo o llamar a la tool requestUserInformation para pedir los datos restantes.
-
   Si el usuario menciona el sexo en otro idioma que ingles (male, female u other), entonces traducelo a una de esas 3 opciones, male female u other.
   Si el usuario menciona el objetivo en otro idioma que ingles (loseWeight, gainWeight, maintainWeight, eatWholeFoods, eatBalanced), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije eatWholeFoods.
   Si el usuario menciona el nivel de actividad física en otro idioma que ingles (sedentary, light, moderate, active, veryActive), entonces traducelo a una de esas opciones escritas tal cual, y si no concuerda con ninguna, elije moderate.
   # El numero de telefono del usuario es: ${user?.phoneNumber}
-
-  IMPORTANTE: Si el usuario provee datos parciales, debes ejecutar saveUserInformation y luego requestUserInformation para pedir la información que falta.
 
   # Últimos mensajes en la conversación:
   ${JSON.stringify(last5MinutesConversation)}
@@ -420,8 +448,8 @@ const systemPrompt = (
   ## generateReport
   Esta herramienta genera un reporte nutricional para el usuario.
   Parámetros:
-  - startDate: fecha de inicio del reporte
-  - endDate: fecha de fin del reporte
+  - startDate: fecha de inicio del reporte. Si el usuario menciona hoy, elije mañana como fecha.
+  - endDate: fecha de fin del reporte. Si el usuario menciona hoy, elije mañana a las 00:00 como fecha.
   - userPhone: user phone number.
   
   ## newPendingFoodLogEntry
